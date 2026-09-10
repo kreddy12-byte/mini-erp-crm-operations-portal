@@ -117,9 +117,10 @@ Deep links (`/customers/:id`, `/crm`, etc.) require the host to serve `index.htm
 1. Root: `backend`
 2. Build: `npm install && npm run build`
 3. Start: `npx prisma migrate deploy && npm start` (or `npm run start:deploy`)
-4. Attach managed Postgres `DATABASE_URL`
-5. Set all required env vars above
+4. Set `DATABASE_URL` in the Render **backend** service environment (Environment → Environment Variables). Use your Neon PostgreSQL connection string as provided by Neon (including `sslmode=require`). Do not commit this value.
+5. Set all other required env vars above (`NODE_ENV`, `JWT_SECRET`, `FRONTEND_URL`, etc.)
 
+This project uses a single Prisma `DATABASE_URL` (no `DIRECT_URL`). Prefer Neon’s non-pooled / direct connection string for the API service so `prisma migrate deploy` on startup works reliably. Keep local `backend/.env` pointed at your development Postgres unless you intentionally override it for a one-off check.
 ## Docker Compose (full local stack)
 
 `docker-compose.yml` runs **postgres**, **backend**, and **frontend** together for a production-like local environment.
