@@ -108,9 +108,14 @@ export function StockMovementModal({ open, product, onClose, onSubmit }: StockMo
           value={movementType}
           onChange={(event) => setMovementType(event.target.value as MovementType)}
           disabled={submitting}
+          hint={
+            movementType === 'IN'
+              ? 'IN increases on-hand stock.'
+              : 'OUT issues stock and cannot exceed the current quantity.'
+          }
           options={[
-            { value: 'IN', label: 'Stock in' },
-            { value: 'OUT', label: 'Stock out' },
+            { value: 'IN', label: 'IN — receive into stock' },
+            { value: 'OUT', label: 'OUT — issue from stock' },
           ]}
         />
         <Input
@@ -157,8 +162,13 @@ export function StockMovementModal({ open, product, onClose, onSubmit }: StockMo
           <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" loading={submitting} disabled={submitting || insufficient}>
-            Record movement
+          <Button
+            type="submit"
+            variant={movementType === 'OUT' ? 'danger' : 'primary'}
+            loading={submitting}
+            disabled={submitting || insufficient}
+          >
+            {movementType === 'IN' ? 'Record stock in' : 'Record stock out'}
           </Button>
         </div>
       </form>

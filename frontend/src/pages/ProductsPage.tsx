@@ -8,8 +8,9 @@ import { Button } from '../components/ui/Button.tsx';
 import { Dropdown } from '../components/ui/Dropdown.tsx';
 import { Input } from '../components/ui/Input.tsx';
 import { PageHeader } from '../components/ui/PageHeader.tsx';
+import { PaginationBar } from '../components/ui/PaginationBar.tsx';
 import { Select } from '../components/ui/Select.tsx';
-import { Skeleton } from '../components/ui/Skeleton.tsx';
+import { TableSkeleton } from '../components/ui/Skeleton.tsx';
 import { canManageProducts, formatUnitPrice } from '../constants/product.ts';
 import { productPath } from '../constants/navigation.ts';
 import { useAuth } from '../hooks/useAuth.ts';
@@ -150,7 +151,7 @@ export function ProductsPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
+      <div className="filter-panel grid gap-3 md:grid-cols-3">
         <Input
           label="Search"
           name="search"
@@ -182,7 +183,7 @@ export function ProductsPage() {
         />
       </div>
 
-      {status === 'loading' ? <ProductListSkeleton /> : null}
+      {status === 'loading' ? <TableSkeleton label="Loading products" /> : null}
 
       {status === 'error' ? (
         <ErrorState
@@ -222,38 +223,38 @@ export function ProductsPage() {
       {status === 'success' && products.length > 0 ? (
         <>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+            <table className="data-table min-w-[56rem]">
               <thead>
-                <tr className="border-b border-line text-caption">
-                  <th className="py-2 pr-4 font-medium">Product</th>
-                  <th className="py-2 pr-4 font-medium">SKU</th>
-                  <th className="py-2 pr-4 font-medium">Category</th>
-                  <th className="py-2 pr-4 font-medium">Price</th>
-                  <th className="py-2 pr-4 font-medium">Stock</th>
-                  <th className="py-2 pr-4 font-medium">Location</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 font-medium">
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Category</th>
+                  <th className="cell-num">Price</th>
+                  <th className="cell-num">Stock</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <tr key={product.id} className="border-b border-line last:border-b-0">
-                    <td className="py-3 pr-4">
+                  <tr key={product.id}>
+                    <td>
                       <Link to={productPath(product.id)} className="font-medium text-ink hover:text-primary">
                         {product.name}
                       </Link>
                     </td>
-                    <td className="py-3 pr-4 text-secondary">{product.sku}</td>
-                    <td className="py-3 pr-4 text-secondary">{product.category}</td>
-                    <td className="py-3 pr-4 text-secondary">{formatUnitPrice(product.unitPrice)}</td>
-                    <td className="py-3 pr-4 text-ink">{product.currentStock}</td>
-                    <td className="py-3 pr-4 text-secondary">{product.location}</td>
-                    <td className="py-3 pr-4">
+                    <td className="text-secondary">{product.sku}</td>
+                    <td className="text-secondary">{product.category}</td>
+                    <td className="cell-num text-secondary">{formatUnitPrice(product.unitPrice)}</td>
+                    <td className="cell-num text-ink">{product.currentStock}</td>
+                    <td className="text-secondary">{product.location}</td>
+                    <td>
                       <StockStatusBadge status={product.stockStatus} />
                     </td>
-                    <td className="py-3">
+                    <td>
                       <div className="flex justify-end">
                         <Dropdown
                           label={`Actions for ${product.name}`}
@@ -318,20 +319,7 @@ export function ProductsPage() {
           </ul>
 
           {pagination ? (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-caption">
-                {pagination.total} products · page {pagination.page}
-                {pagination.totalPages ? ` of ${pagination.totalPages}` : ''}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={!pagination.hasPrevious} onClick={() => setPage(pagination.page - 1)}>
-                  Previous
-                </Button>
-                <Button variant="secondary" size="sm" disabled={!pagination.hasNext} onClick={() => setPage(pagination.page + 1)}>
-                  Next
-                </Button>
-              </div>
-            </div>
+            <PaginationBar pagination={pagination} noun="products" onPage={setPage} />
           ) : null}
         </>
       ) : null}
@@ -348,17 +336,6 @@ export function ProductsPage() {
           onSubmit={handleSave}
         />
       ) : null}
-    </div>
-  );
-}
-
-function ProductListSkeleton() {
-  return (
-    <div role="status" aria-live="polite" aria-busy="true" className="space-y-2">
-      <span className="sr-only">Loading products</span>
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-2/3" />
     </div>
   );
 }

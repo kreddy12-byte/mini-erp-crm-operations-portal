@@ -1,6 +1,6 @@
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { BellIcon, MenuIcon, SearchIcon } from '../../assets/icons.tsx';
-import { getNavItem } from '../../constants/navigation.ts';
+import { challanNewPath, getNavItem, paths } from '../../constants/navigation.ts';
 import { useAuth } from '../../hooks/useAuth.ts';
 import { useToast } from '../../hooks/useToast.ts';
 import { Badge } from '../ui/Badge.tsx';
@@ -13,9 +13,45 @@ interface TopBarProps {
   onOpenNav: () => void;
 }
 
+interface Crumb {
+  label: string;
+  to?: string;
+}
+
+function crumbsFor(pathname: string, search: string): Crumb[] {
+  const current = getNavItem(pathname);
+  const moduleLabel = current?.label ?? 'Page';
+  const params = new URLSearchParams(search);
+
+  if (pathname === paths.dashboard) {
+    return [{ label: 'Dashboard' }];
+  }
+
+  if (pathname === challanNewPath) {
+    return [{ label: 'Sales Challans', to: paths.challans }, { label: 'New challan' }];
+  }
+
+  if (pathname.startsWith(`${paths.challans}/`) && pathname !== paths.challans) {
+    return [
+      { label: 'Sales Challans', to: paths.challans },
+      { label: params.get('edit') === '1' ? 'Edit draft' : 'Challan' },
+    ];
+  }
+
+  if (pathname.startsWith(`${paths.customers}/`) && pathname !== paths.customers) {
+    return [{ label: 'Customers', to: paths.customers }, { label: 'Customer' }];
+  }
+
+  if (pathname.startsWith(`${paths.products}/`) && pathname !== paths.products) {
+    return [{ label: 'Products', to: paths.products }, { label: 'Product' }];
+  }
+
+  return [{ label: moduleLabel }];
+}
+
 export function TopBar({ mobileNavOpen, onOpenNav }: TopBarProps) {
   const location = useLocation();
-  const current = getNavItem(location.pathname);
+  const crumbs = crumbsFor(location.pathname, location.search);
   const { pushToast } = useToast();
   const { user, logout } = useAuth();
 
@@ -35,18 +71,32 @@ export function TopBar({ mobileNavOpen, onOpenNav }: TopBarProps) {
         </Button>
 
         <nav aria-label="Breadcrumb" className="min-w-0">
-          <ol className="flex items-center gap-2 text-sm">
-            <li className="hidden text-ink-muted sm:block">Workspace</li>
-            <li className="hidden text-ink-muted sm:block" aria-hidden="true">
-              /
-            </li>
-            <li className="truncate font-medium text-ink" aria-current="page">
-              {current?.label ?? 'Page'}
-            </li>
+          <ol className="flex min-w-0 items-center gap-2 text-sm">
+            {crumbs.map((crumb, index) => {
+              const last = index === crumbs.length - 1;
+              return (
+                <li key={`${crumb.label}-${index}`} className="flex min-w-0 items-center gap-2">
+                  {index > 0 ? (
+                    <span className="text-ink-muted" aria-hidden="true">
+                      /
+                    </span>
+                  ) : null}
+                  {crumb.to && !last ? (
+                    <Link to={crumb.to} className="truncate text-ink-muted hover:text-ink">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="truncate font-medium text-ink" aria-current={last ? 'page' : undefined}>
+                      {crumb.label}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </nav>
 
-        <div className="ml-auto hidden min-w-0 max-w-sm flex-1 md:block">
+        <div className="ml-auto hidden min-w-0 max-w-xs flex-1 lg:block">
           <form
             role="search"
             onSubmit={(event) => {
@@ -65,13 +115,13 @@ export function TopBar({ mobileNavOpen, onOpenNav }: TopBarProps) {
                 hideLabel
                 name="q"
                 placeholder="Search customers, products, challans"
-                className="pl-9"
+                className="border-line bg-canvas pl-9"
               />
             </div>
           </form>
         </div>
 
-        <div className="ml-auto flex items-center gap-1 md:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0">
           <Dropdown
             label="Notifications"
             items={[
@@ -101,7 +151,7 @@ export function TopBar({ mobileNavOpen, onOpenNav }: TopBarProps) {
             trigger={
               <span className="ml-1 flex items-center gap-2 rounded-md border border-line px-2 py-1.5">
                 <Badge tone="neutral">{user?.role ?? 'User'}</Badge>
-                <span className="hidden max-w-40 truncate text-sm font-medium text-ink sm:inline">
+                <span className="hidden max-w-36 truncate text-sm font-medium text-ink sm:inline">
                   {user?.name ?? 'Signed in'}
                 </span>
               </span>

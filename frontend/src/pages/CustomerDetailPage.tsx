@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChallanStatusBadge } from '../components/challans/ChallanStatusBadge.tsx';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal.tsx';
 import { FollowUpModal } from '../components/customers/FollowUpModal.tsx';
 import { CustomerStatusBadge, FollowUpDate } from '../components/customers/customerDisplay.tsx';
@@ -9,9 +10,10 @@ import { ErrorState } from '../components/feedback/ErrorState.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { PageHeader } from '../components/ui/PageHeader.tsx';
 import { PageSkeleton } from '../components/ui/Skeleton.tsx';
-import { paths } from '../constants/navigation.ts';
+import { challanNewPath, challanPath, paths } from '../constants/navigation.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useToast } from '../hooks/useToast.ts';
+import { listChallans } from '../services/challans.ts';
 import {
   createCustomerFollowUp,
   getCustomer,
@@ -19,8 +21,9 @@ import {
   updateCustomer,
 } from '../services/customers.ts';
 import { ApiClientError } from '../types/api.ts';
+import type { Challan } from '../types/challan.ts';
 import type { CreateFollowUpPayload, Customer, CustomerFollowUp, CustomerWritePayload } from '../types/customer.ts';
-import { formatDateTime } from '../utils/dates.ts';
+import { formatDate, formatDateTime } from '../utils/dates.ts';
 
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +47,7 @@ function CustomerDetailRecord({ id, onRetry }: { id: string; onRetry: () => void
   const { pushToast } = useToast();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [followUps, setFollowUps] = useState<CustomerFollowUp[]>([]);
+  const [relatedChallans, setRelatedChallans] = useState<Challan[]>([]);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -61,6 +65,19 @@ function CustomerDetailRecord({ id, onRetry }: { id: string; onRetry: () => void
         setCustomer(record);
         setFollowUps(record.followUps ?? []);
         setStatus('success');
+        listChallans({
+          page: 1,
+          pageSize: 6,
+          customerId: id,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+        })
+          .then((result) => {
+            if (!cancelled) setRelatedChallans(result.challans);
+          })
+          .catch(() => {
+            if (!cancelled) setRelatedChallans([]);
+          });
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
@@ -152,7 +169,7 @@ function CustomerDetailRecord({ id, onRetry }: { id: string; onRetry: () => void
         }
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
+      <div className="mb-8 flex flex-wrap items-center gap-3 border-b border-line pb-4">
         <CustomerStatusBadge status={customer.status} />
         <span className="text-secondary">{CUSTOMER_TYPE_LABELS[customer.customerType]}</span>
       </div>
@@ -187,6 +204,39 @@ function CustomerDetailRecord({ id, onRetry }: { id: string; onRetry: () => void
               </div>
               <Info label="Current notes" value={customer.notes || 'No current note'} className="sm:col-span-2" />
             </dl>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-section">Related challans</h2>
+              {canManage ? (
+                <Link to={challanNewPath} className="text-sm font-medium text-primary hover:text-primary-hover">
+                  Create challan
+                </Link>
+              ) : null}
+            </div>
+            {relatedChallans.length === 0 ? (
+              <EmptyState
+                title="No challans for this customer"
+                description="Sales challans created for this account will appear here."
+              />
+            ) : (
+              <ul className="divide-y divide-line">
+                {relatedChallans.map((challan) => (
+                  <li key={challan.id} className="flex items-start justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <Link to={challanPath(challan.id)} className="font-medium text-ink hover:text-primary">
+                        {challan.challanNumber}
+                      </Link>
+                      <p className="text-caption">
+                        {challan.totalQuantity} units · {formatDate(challan.createdAt)}
+                      </p>
+                    </div>
+                    <ChallanStatusBadge status={challan.status} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
 

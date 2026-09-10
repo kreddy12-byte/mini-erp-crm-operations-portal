@@ -10,8 +10,9 @@ import { Button } from '../components/ui/Button.tsx';
 import { Dropdown } from '../components/ui/Dropdown.tsx';
 import { Input } from '../components/ui/Input.tsx';
 import { PageHeader } from '../components/ui/PageHeader.tsx';
+import { PaginationBar } from '../components/ui/PaginationBar.tsx';
 import { Select } from '../components/ui/Select.tsx';
-import { Skeleton } from '../components/ui/Skeleton.tsx';
+import { TableSkeleton } from '../components/ui/Skeleton.tsx';
 import { canManageChallans, canViewCustomersForChallans } from '../constants/challan.ts';
 import { challanNewPath, challanPath } from '../constants/navigation.ts';
 import { useAuth } from '../hooks/useAuth.ts';
@@ -172,7 +173,7 @@ export function ChallansPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 md:grid-cols-4">
+      <div className="filter-panel grid gap-3 md:grid-cols-4">
         <Input
           label="Search"
           name="search"
@@ -249,7 +250,7 @@ export function ChallansPage() {
         </div>
       ) : null}
 
-      {status === 'loading' ? <ChallanListSkeleton /> : null}
+      {status === 'loading' ? <TableSkeleton label="Loading challans" /> : null}
 
       {status === 'error' ? (
         <ErrorState
@@ -282,39 +283,39 @@ export function ChallansPage() {
       {status === 'success' && challans.length > 0 ? (
         <>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+            <table className="data-table min-w-[56rem]">
               <thead>
-                <tr className="border-b border-line text-caption">
-                  <th className="py-2 pr-4 font-medium">Challan</th>
-                  <th className="py-2 pr-4 font-medium">Customer</th>
-                  <th className="py-2 pr-4 font-medium">Qty</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 pr-4 font-medium">Created by</th>
-                  <th className="py-2 pr-4 font-medium">Created</th>
-                  <th className="py-2 font-medium">
+                <tr>
+                  <th>Challan</th>
+                  <th>Customer</th>
+                  <th className="cell-num">Qty</th>
+                  <th>Status</th>
+                  <th>Created by</th>
+                  <th>Created</th>
+                  <th>
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {challans.map((challan) => (
-                  <tr key={challan.id} className="border-b border-line last:border-b-0">
-                    <td className="py-3 pr-4">
+                  <tr key={challan.id}>
+                    <td>
                       <Link to={challanPath(challan.id)} className="font-medium text-ink hover:text-primary">
                         {challan.challanNumber}
                       </Link>
                     </td>
-                    <td className="py-3 pr-4">
+                    <td>
                       <div className="text-ink">{challan.customer.name}</div>
                       <div className="text-caption">{challan.customer.businessName || '—'}</div>
                     </td>
-                    <td className="py-3 pr-4 text-ink">{challan.totalQuantity}</td>
-                    <td className="py-3 pr-4">
+                    <td className="cell-num text-ink">{challan.totalQuantity}</td>
+                    <td>
                       <ChallanStatusBadge status={challan.status} />
                     </td>
-                    <td className="py-3 pr-4 text-secondary">{challan.createdBy.name}</td>
-                    <td className="py-3 pr-4 text-secondary">{formatDate(challan.createdAt)}</td>
-                    <td className="py-3">
+                    <td className="text-secondary">{challan.createdBy.name}</td>
+                    <td className="text-secondary">{formatDate(challan.createdAt)}</td>
+                    <td>
                       <div className="flex justify-end">
                         <Dropdown
                           label={`Actions for ${challan.challanNumber}`}
@@ -341,6 +342,7 @@ export function ChallansPage() {
                                   {
                                     id: 'cancel',
                                     label: 'Cancel draft',
+                                    tone: 'danger' as const,
                                     onSelect: () => {
                                       setActionId(challan.id);
                                       setCancelTarget(challan);
@@ -387,7 +389,7 @@ export function ChallansPage() {
                     </button>
                     <button
                       type="button"
-                      className="text-sm font-medium text-ink-secondary hover:text-ink"
+                      className="text-sm font-medium text-danger hover:text-danger/80"
                       onClick={() => setCancelTarget(challan)}
                     >
                       Cancel
@@ -399,20 +401,7 @@ export function ChallansPage() {
           </ul>
 
           {pagination ? (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-caption">
-                {pagination.total} challans · page {pagination.page}
-                {pagination.totalPages ? ` of ${pagination.totalPages}` : ''}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={!pagination.hasPrevious} onClick={() => setPage(pagination.page - 1)}>
-                  Previous
-                </Button>
-                <Button variant="secondary" size="sm" disabled={!pagination.hasNext} onClick={() => setPage(pagination.page + 1)}>
-                  Next
-                </Button>
-              </div>
-            </div>
+            <PaginationBar pagination={pagination} noun="challans" onPage={setPage} />
           ) : null}
         </>
       ) : null}
@@ -437,17 +426,6 @@ export function ChallansPage() {
         }}
         onConfirm={handleCancel}
       />
-    </div>
-  );
-}
-
-function ChallanListSkeleton() {
-  return (
-    <div role="status" aria-live="polite" aria-busy="true" className="space-y-2">
-      <span className="sr-only">Loading challans</span>
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-2/3" />
     </div>
   );
 }

@@ -33,9 +33,11 @@ export function AppLayout() {
       <div className="lg:pl-60">
         <TopBar mobileNavOpen={mobileOpen} onOpenNav={() => setMobileOpen(true)} />
         <main id="main-content" className="px-4 py-6 sm:px-6 lg:px-8">
-          <RouteTransition>
-            <Outlet />
-          </RouteTransition>
+          <div className="page-frame">
+            <RouteTransition>
+              <Outlet />
+            </RouteTransition>
+          </div>
         </main>
       </div>
     </div>

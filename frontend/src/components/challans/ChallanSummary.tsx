@@ -24,15 +24,15 @@ export function ChallanSummary({ customerName, lines }: ChallanSummaryProps) {
         </div>
         <div>
           <dt className="text-caption">Product lines</dt>
-          <dd className="mt-1 text-body">{lines.length}</dd>
+          <dd className="mt-1 text-body tabular-nums">{lines.length}</dd>
         </div>
         <div>
           <dt className="text-caption">Total quantity</dt>
-          <dd className="mt-1 text-body">{totalQuantity}</dd>
+          <dd className="mt-1 text-body tabular-nums">{totalQuantity}</dd>
         </div>
         <div>
           <dt className="text-caption">Estimated value</dt>
-          <dd className="mt-1 text-body">{formatUnitPrice(estimatedValue)}</dd>
+          <dd className="mt-1 text-body tabular-nums">{formatUnitPrice(estimatedValue)}</dd>
         </div>
       </dl>
       <p className="mt-3 text-caption">

@@ -7,6 +7,7 @@ interface DropdownItem {
   label: string;
   onSelect: () => void;
   disabled?: boolean;
+  tone?: 'default' | 'danger';
 }
 
 interface DropdownProps {
@@ -75,7 +76,10 @@ export function Dropdown({ label, items, trigger, align = 'end' }: DropdownProps
                 type="button"
                 role="menuitem"
                 disabled={item.disabled}
-                className="flex w-full rounded-sm px-3 py-2 text-left text-sm text-ink hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted"
+                className={cn(
+                  'flex w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-canvas disabled:cursor-not-allowed disabled:text-ink-muted',
+                  item.tone === 'danger' ? 'text-danger hover:bg-danger-muted' : 'text-ink',
+                )}
                 onClick={() => {
                   item.onSelect();
                   setOpen(false);

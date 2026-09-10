@@ -132,7 +132,7 @@ function ProductDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
     <div>
       <PageHeader
         title={product.name}
-        description={product.sku}
+        description={`${product.sku} · ${product.category}`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => navigate(paths.products)}>
@@ -148,9 +148,29 @@ function ProductDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
         }
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <StockStatusBadge status={product.stockStatus} />
-        <span className="text-secondary">{product.category}</span>
+      <div className="mb-8 flex flex-wrap items-end gap-8 border-b border-line pb-5">
+        <div>
+          <p className="text-caption">On hand</p>
+          <p className="text-page-title tabular-nums">{product.currentStock}</p>
+        </div>
+        <div>
+          <p className="text-caption">Minimum</p>
+          <p className="text-section tabular-nums">{product.minStock}</p>
+        </div>
+        <div>
+          <p className="text-caption">Status</p>
+          <div className="mt-1">
+            <StockStatusBadge status={product.stockStatus} />
+          </div>
+        </div>
+        <div>
+          <p className="text-caption">Location</p>
+          <p className="mt-1 text-body">{product.location || '—'}</p>
+        </div>
+        <div>
+          <p className="text-caption">Unit price</p>
+          <p className="mt-1 text-body">{formatUnitPrice(product.unitPrice)}</p>
+        </div>
       </div>
 
       <div className="grid gap-10 lg:grid-cols-3">
@@ -162,14 +182,6 @@ function ProductDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
               <Info label="Category" value={product.category} />
               <Info label="Unit price" value={formatUnitPrice(product.unitPrice)} />
               <Info label="Location" value={product.location} />
-            </dl>
-          </section>
-
-          <section>
-            <h2 className="text-section">Stock</h2>
-            <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Info label="Current stock" value={String(product.currentStock)} />
-              <Info label="Minimum stock alert" value={String(product.minStock)} />
             </dl>
           </section>
         </div>
@@ -186,7 +198,7 @@ function ProductDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
           ) : (
             <EmptyState
               title="No movements yet"
-              description="Opening stock and later IN/OUT adjustments will appear here."
+              description="Stock IN and OUT records appear after opening stock or later adjustments. History cannot be edited."
             />
           )}
         </section>

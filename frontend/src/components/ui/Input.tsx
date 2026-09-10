@@ -23,6 +23,7 @@ export function Input({
   const inputId = id ?? props.name ?? label.toLowerCase().replace(/\s+/g, '-');
   const hintId = hint ? `${inputId}-hint` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
+  const required = Boolean(props.required);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -34,6 +35,12 @@ export function Input({
         )}
       >
         {label}
+        {required ? (
+          <span className="text-danger" aria-hidden="true">
+            {' '}
+            *
+          </span>
+        ) : null}
       </label>
       <div className="relative">
         <input
@@ -43,7 +50,7 @@ export function Input({
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           className={cn(
             'h-10 w-full rounded-md border bg-surface px-3 text-sm text-ink placeholder:text-ink-muted',
-            'transition-colors disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted',
+            'transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted',
             trailing ? 'pr-10' : undefined,
             error ? 'border-danger' : 'border-line-strong hover:border-ink-muted',
             className,

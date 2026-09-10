@@ -27,3 +27,15 @@ export function PageSkeleton() {
     </div>
   );
 }
+
+export function TableSkeleton({ rows = 6, label = 'Loading' }: { rows?: number; label?: string }) {
+  return (
+    <div role="status" aria-live="polite" aria-busy="true" className="space-y-2">
+      <span className="sr-only">{label}</span>
+      <Skeleton className="h-8 w-full" />
+      {Array.from({ length: rows }).map((_, index) => (
+        <Skeleton key={index} className={cn('h-11 w-full', index === rows - 1 && 'w-2/3')} />
+      ))}
+    </div>
+  );
+}

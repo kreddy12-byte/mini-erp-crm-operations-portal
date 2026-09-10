@@ -77,21 +77,21 @@ export function ChallanProductTable({
         />
       </div>
 
-      {lines.length === 0 ? (
-        <p className="text-secondary">No products on this challan yet.</p>
+        {lines.length === 0 ? (
+        <p className="text-secondary">No products on this challan yet. Search above to add a line.</p>
       ) : (
         <>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
+            <table className="data-table min-w-[48rem]">
               <thead>
-                <tr className="border-b border-line text-caption">
-                  <th className="py-2 pr-4 font-medium">Product</th>
-                  <th className="py-2 pr-4 font-medium">SKU</th>
-                  <th className="py-2 pr-4 font-medium">Available</th>
-                  <th className="py-2 pr-4 font-medium">Unit price</th>
-                  <th className="py-2 pr-4 font-medium">Quantity</th>
-                  <th className="py-2 pr-4 font-medium">Line estimate</th>
-                  <th className="py-2 font-medium">
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th className="cell-num">Available</th>
+                  <th className="cell-num">Unit price</th>
+                  <th>Quantity</th>
+                  <th className="cell-num">Line estimate</th>
+                  <th>
                     <span className="sr-only">Remove</span>
                   </th>
                 </tr>
@@ -103,18 +103,18 @@ export function ChallanProductTable({
                   return (
                     <tr
                       key={line.product.id}
-                      className={cn('border-b border-line last:border-b-0', error && 'bg-danger-muted/40')}
+                      className={error ? 'is-alert' : undefined}
                     >
-                      <td className="py-3 pr-4">
+                      <td>
                         <div className="font-medium text-ink">{line.product.name}</div>
                         <div className="mt-1">
                           <StockStatusBadge status={line.product.stockStatus} />
                         </div>
                       </td>
-                      <td className="py-3 pr-4 text-secondary">{line.product.sku}</td>
-                      <td className="py-3 pr-4 text-ink">{line.product.currentStock}</td>
-                      <td className="py-3 pr-4 text-secondary">{formatUnitPrice(line.product.unitPrice)}</td>
-                      <td className="py-3 pr-4">
+                      <td className="text-secondary">{line.product.sku}</td>
+                      <td className="cell-num text-ink">{line.product.currentStock}</td>
+                      <td className="cell-num text-secondary">{formatUnitPrice(line.product.unitPrice)}</td>
+                      <td>
                         <Input
                           label={`Quantity for ${line.product.name}`}
                           hideLabel
@@ -128,10 +128,10 @@ export function ChallanProductTable({
                           onChange={(event) => onQuantityChange(line.product.id, Number.parseInt(event.target.value, 10))}
                         />
                       </td>
-                      <td className="py-3 pr-4 text-secondary">
+                      <td className="cell-num text-secondary">
                         {Number.isFinite(estimate) ? formatUnitPrice(estimate) : '—'}
                       </td>
-                      <td className="py-3">
+                      <td>
                         <Button
                           variant="ghost"
                           size="sm"

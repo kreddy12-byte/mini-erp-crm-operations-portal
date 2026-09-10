@@ -7,9 +7,11 @@ import { StockMovementModal } from '../components/inventory/StockMovementModal.t
 import { StockStatusBadge } from '../components/products/productDisplay.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Input } from '../components/ui/Input.tsx';
+import { KpiStat } from '../components/ui/KpiStat.tsx';
 import { PageHeader } from '../components/ui/PageHeader.tsx';
+import { PaginationBar } from '../components/ui/PaginationBar.tsx';
 import { Select } from '../components/ui/Select.tsx';
-import { Skeleton } from '../components/ui/Skeleton.tsx';
+import { TableSkeleton } from '../components/ui/Skeleton.tsx';
 import { canMoveStock } from '../constants/product.ts';
 import { productPath } from '../constants/navigation.ts';
 import { useAuth } from '../hooks/useAuth.ts';
@@ -153,14 +155,29 @@ export function InventoryPage() {
         description="On-hand quantities, low-stock alerts, and stock movements."
       />
 
-      <dl className="mb-5 grid grid-cols-2 gap-x-6 gap-y-3 border-b border-line pb-4 sm:grid-cols-4">
-        <SummaryStat label="Total products" value={summary.total} />
-        <SummaryStat label="Healthy" value={summary.healthy} />
-        <SummaryStat label="Low stock" value={summary.low} />
-        <SummaryStat label="Out of stock" value={summary.critical} />
+      <dl className="kpi-strip grid grid-cols-2 sm:grid-cols-4">
+        <KpiStat label="Total products" value={summary.total} hint="In catalog" />
+        <KpiStat
+          label="Healthy"
+          value={summary.healthy}
+          hint="Above minimum"
+          tone={summary.healthy > 0 ? 'success' : 'default'}
+        />
+        <KpiStat
+          label="Low stock"
+          value={summary.low}
+          hint="At or below minimum"
+          tone={summary.low > 0 ? 'warning' : 'default'}
+        />
+        <KpiStat
+          label="Out of stock"
+          value={summary.critical}
+          hint="Zero on hand"
+          tone={summary.critical > 0 ? 'danger' : 'default'}
+        />
       </dl>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-4">
+      <div className="filter-panel grid gap-3 md:grid-cols-4">
         <Input
           label="Search"
           name="search"
@@ -199,14 +216,7 @@ export function InventoryPage() {
         />
       </div>
 
-      {status === 'loading' ? (
-        <div role="status" aria-live="polite" aria-busy="true" className="space-y-2">
-          <span className="sr-only">Loading inventory</span>
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-2/3" />
-        </div>
-      ) : null}
+      {status === 'loading' ? <TableSkeleton label="Loading inventory" /> : null}
 
       {status === 'error' ? (
         <ErrorState
@@ -237,38 +247,38 @@ export function InventoryPage() {
       {status === 'success' && products.length > 0 ? (
         <>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+            <table className="data-table min-w-[56rem]">
               <thead>
-                <tr className="border-b border-line text-caption">
-                  <th className="py-2 pr-4 font-medium">Product</th>
-                  <th className="py-2 pr-4 font-medium">SKU</th>
-                  <th className="py-2 pr-4 font-medium">Category</th>
-                  <th className="py-2 pr-4 font-medium">Location</th>
-                  <th className="py-2 pr-4 font-medium">Current</th>
-                  <th className="py-2 pr-4 font-medium">Minimum</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 font-medium">
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Category</th>
+                  <th>Location</th>
+                  <th className="cell-num">Current</th>
+                  <th className="cell-num">Minimum</th>
+                  <th>Status</th>
+                  <th>
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <tr key={product.id} className="border-b border-line last:border-b-0">
-                    <td className="py-3 pr-4">
+                  <tr key={product.id} className={product.stockStatus === 'CRITICAL' ? 'is-alert' : undefined}>
+                    <td>
                       <Link to={productPath(product.id)} className="font-medium text-ink hover:text-primary">
                         {product.name}
                       </Link>
                     </td>
-                    <td className="py-3 pr-4 text-secondary">{product.sku}</td>
-                    <td className="py-3 pr-4 text-secondary">{product.category}</td>
-                    <td className="py-3 pr-4 text-secondary">{product.location}</td>
-                    <td className="py-3 pr-4 font-medium text-ink">{product.currentStock}</td>
-                    <td className="py-3 pr-4 text-secondary">{product.minStock}</td>
-                    <td className="py-3 pr-4">
+                    <td className="text-secondary">{product.sku}</td>
+                    <td className="text-secondary">{product.category}</td>
+                    <td className="text-secondary">{product.location}</td>
+                    <td className="cell-num font-medium text-ink">{product.currentStock}</td>
+                    <td className="cell-num text-secondary">{product.minStock}</td>
+                    <td>
                       <StockStatusBadge status={product.stockStatus} />
                     </td>
-                    <td className="py-3">
+                    <td>
                       <div className="flex justify-end gap-3">
                         {canAdjust ? (
                           <button
@@ -334,20 +344,7 @@ export function InventoryPage() {
           </ul>
 
           {pagination ? (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-caption">
-                {pagination.total} products · page {pagination.page}
-                {pagination.totalPages ? ` of ${pagination.totalPages}` : ''}
-              </p>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={!pagination.hasPrevious} onClick={() => setPage(pagination.page - 1)}>
-                  Previous
-                </Button>
-                <Button variant="secondary" size="sm" disabled={!pagination.hasNext} onClick={() => setPage(pagination.page + 1)}>
-                  Next
-                </Button>
-              </div>
-            </div>
+            <PaginationBar pagination={pagination} noun="products" onPage={setPage} />
           ) : null}
         </>
       ) : null}
@@ -363,15 +360,6 @@ export function InventoryPage() {
       {historyFor ? (
         <MovementHistoryModal open product={historyFor} onClose={() => setHistoryFor(null)} />
       ) : null}
-    </div>
-  );
-}
-
-function SummaryStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <dt className="text-caption">{label}</dt>
-      <dd className="mt-1 text-section">{value}</dd>
     </div>
   );
 }

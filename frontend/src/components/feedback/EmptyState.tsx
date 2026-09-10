@@ -11,7 +11,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, action, className }: EmptyStateProps) {
   return (
-    <div className={cn('max-w-lg', className)}>
+    <div className={cn('max-w-lg py-2', className)}>
       <EmptyIcon className="mb-3 h-6 w-6 text-ink-muted" />
       <h2 className="text-section">{title}</h2>
       <p className="mt-1 text-secondary">{description}</p>

@@ -12,7 +12,7 @@ export function AuthLayout() {
         <div className="max-w-md">
           <h1 className="text-3xl font-semibold tracking-tight">Operations, without the clutter.</h1>
           <p className="mt-4 text-sm leading-6 text-primary-foreground/80">
-            Sign in to manage customers, products, and inventory from a single workspace. Role access is
+            Sign in to manage customers, inventory, and sales challans from one workspace. Role access is
             enforced by the API, not just the screens you can see.
           </p>
         </div>

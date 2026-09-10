@@ -9,7 +9,7 @@ import {
   ProductsIcon,
 } from '../../assets/icons.tsx';
 import { APP_NAME, APP_PRODUCT } from '../../constants/app.ts';
-import { NAV_ITEMS, navItemsForRole, type NavItem } from '../../constants/navigation.ts';
+import { NAV_ITEMS, navItemsForRole, paths, type NavItem } from '../../constants/navigation.ts';
 import { useAuth } from '../../hooks/useAuth.ts';
 import { cn } from '../../utils/cn.ts';
 import { Button } from '../ui/Button.tsx';
@@ -30,10 +30,10 @@ interface SidebarProps {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2.5 px-3 py-1">
+    <div className="flex items-center gap-2.5 px-1 py-0.5">
       <img src="/favicon.svg" alt="" className="h-8 w-8 rounded-md" />
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-ink">{APP_NAME}</p>
+        <p className="truncate text-sm font-semibold tracking-tight text-ink">{APP_NAME}</p>
         <p className="truncate text-caption">{APP_PRODUCT}</p>
       </div>
     </div>
@@ -61,12 +61,13 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
   return (
     <NavLink
       to={item.to}
+      end={item.to === paths.dashboard}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
           'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors',
           isActive
-            ? 'bg-primary-muted text-primary'
+            ? 'bg-primary-muted text-primary shadow-[inset_3px_0_0_0_var(--color-primary)]'
             : 'text-ink-secondary hover:bg-canvas hover:text-ink',
         )
       }
@@ -90,8 +91,9 @@ function SidebarAccount() {
   }
 
   return (
-    <div className="border-t border-line px-4 py-4">
-      <p className="truncate text-sm font-medium text-ink">{user.name}</p>
+    <div className="border-t border-line px-4 py-3">
+      <p className="text-caption">Signed in</p>
+      <p className="mt-0.5 truncate text-sm font-medium text-ink">{user.name}</p>
       <p className="truncate text-caption">{user.role}</p>
     </div>
   );

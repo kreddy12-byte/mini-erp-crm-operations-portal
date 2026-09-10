@@ -184,7 +184,7 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
                 <Button variant="secondary" onClick={() => navigate(`${paths.challans}/${challan.id}?edit=1`)}>
                   Edit
                 </Button>
-                <Button variant="secondary" onClick={() => setCancelOpen(true)}>
+                <Button variant="danger" onClick={() => setCancelOpen(true)}>
                   Cancel draft
                 </Button>
                 <Button onClick={() => setConfirmOpen(true)}>Confirm</Button>
@@ -194,11 +194,28 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
         }
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <ChallanStatusBadge status={challan.status} />
-        <span className="text-secondary">
+      <div
+        className={
+          challan.status === 'CONFIRMED'
+            ? 'mb-6 rounded-md border border-success/30 bg-success-muted px-4 py-3'
+            : challan.status === 'CANCELLED'
+              ? 'mb-6 rounded-md border border-line-strong bg-canvas px-4 py-3'
+              : 'mb-6 rounded-md border border-warning/30 bg-warning-muted px-4 py-3'
+        }
+      >
+        <div className="flex flex-wrap items-start gap-3">
+          <ChallanStatusBadge status={challan.status} />
+          <p className="text-secondary">
+            {challan.status === 'CONFIRMED'
+              ? 'This challan is confirmed. Stock has been deducted and line items are historical snapshots. Catalog edits do not rewrite them.'
+              : challan.status === 'CANCELLED'
+                ? 'This draft was cancelled before confirmation. Stock was never deducted and the challan cannot be reused.'
+                : 'Draft — stock is not deducted until confirmation. Product lines remain editable.'}
+          </p>
+        </div>
+        <p className="mt-2 text-caption">
           {challan.createdBy.name} · {formatDateTime(challan.createdAt)}
-        </span>
+        </p>
       </div>
 
       <div className="grid gap-10 lg:grid-cols-3">
@@ -229,14 +246,14 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
             <h2 className="text-section">Items</h2>
             <p className="mt-1 mb-3 text-secondary">{snapshotNote}</p>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+              <table className="data-table min-w-[40rem]">
                 <thead>
-                  <tr className="border-b border-line text-caption">
-                    <th className="py-2 pr-4 font-medium">Product</th>
-                    <th className="py-2 pr-4 font-medium">SKU</th>
-                    <th className="py-2 pr-4 font-medium">Unit price</th>
-                    <th className="py-2 pr-4 font-medium">Qty</th>
-                    <th className="py-2 font-medium">Line estimate</th>
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th className="cell-num">Unit price</th>
+                    <th className="cell-num">Qty</th>
+                    <th className="cell-num">Line estimate</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,12 +261,12 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
                     const price = Number.parseFloat(item.unitPriceSnapshot);
                     const lineValue = Number.isFinite(price) ? price * item.quantity : null;
                     return (
-                      <tr key={item.id} className="border-b border-line last:border-b-0">
-                        <td className="py-3 pr-4 font-medium text-ink">{item.productNameSnapshot}</td>
-                        <td className="py-3 pr-4 text-secondary">{item.skuSnapshot}</td>
-                        <td className="py-3 pr-4 text-secondary">{formatUnitPrice(item.unitPriceSnapshot)}</td>
-                        <td className="py-3 pr-4 text-ink">{item.quantity}</td>
-                        <td className="py-3 text-secondary">{lineValue === null ? '—' : formatUnitPrice(lineValue)}</td>
+                      <tr key={item.id}>
+                        <td className="font-medium text-ink">{item.productNameSnapshot}</td>
+                        <td className="text-secondary">{item.skuSnapshot}</td>
+                        <td className="cell-num text-secondary">{formatUnitPrice(item.unitPriceSnapshot)}</td>
+                        <td className="cell-num text-ink">{item.quantity}</td>
+                        <td className="cell-num text-secondary">{lineValue === null ? '—' : formatUnitPrice(lineValue)}</td>
                       </tr>
                     );
                   })}
@@ -280,7 +297,10 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
           <section>
             <h2 className="text-section">Summary</h2>
             <dl className="mt-3 space-y-3">
-              <Info label="Status" value={challan.status === 'DRAFT' ? 'Draft' : challan.status === 'CONFIRMED' ? 'Confirmed' : 'Cancelled'} />
+              <Info
+                label="Status"
+                value={challan.status === 'DRAFT' ? 'Draft' : challan.status === 'CONFIRMED' ? 'Confirmed' : 'Cancelled'}
+              />
               <Info label="Product lines" value={String(challan.items.length)} />
               <Info label="Total quantity" value={String(challan.totalQuantity)} />
               <Info label="Estimated value" value={formatUnitPrice(estimatedValue)} />

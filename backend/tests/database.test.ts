@@ -140,26 +140,53 @@ test('database schema, seed, and relationships are available', async (t) => {
     'numeric',
   );
 
-  const userCount = await prisma.user.count();
-  const customerCount = await prisma.customer.count();
-  const followUpCount = await prisma.customerFollowUp.count();
-  const productCount = await prisma.product.count();
-  const movementCount = await prisma.stockMovement.count();
-  const challanCount = await prisma.salesChallan.count();
-  const itemCount = await prisma.salesChallanItem.count();
+  // Seed presence checks use stable identifiers from prisma/seed.ts.
+  // Absolute global counts are intentionally avoided: this suite shares the
+  // development database with legitimate manual application usage.
+  const seedUsers = [
+    { email: 'admin.dev@example.com', role: 'ADMIN' },
+    { email: 'sales.dev@example.com', role: 'SALES' },
+    { email: 'warehouse.dev@example.com', role: 'WAREHOUSE' },
+    { email: 'accounts.dev@example.com', role: 'ACCOUNTS' },
+  ] as const;
 
-  assert.equal(userCount, 4);
-  assert.equal(customerCount, 3);
-  assert.equal(followUpCount, 1);
-  assert.equal(productCount, 3);
-  assert.equal(movementCount, 2);
-  assert.equal(challanCount, 1);
-  assert.equal(itemCount, 2);
+  for (const seed of seedUsers) {
+    const user = await prisma.user.findUnique({ where: { email: seed.email } });
+    assert.ok(user, `Expected seed user ${seed.email}`);
+    assert.equal(user.role, seed.role, `Expected seed user ${seed.email} to have role ${seed.role}`);
+  }
 
-  const roles = (await prisma.user.findMany({ select: { role: true } }))
-    .map((user) => user.role)
-    .sort();
-  assert.deepEqual(roles, ['ACCOUNTS', 'ADMIN', 'SALES', 'WAREHOUSE']);
+  for (const customerId of [
+    'seed-customer-retail-lead',
+    'seed-customer-wholesale-active',
+    'seed-customer-distributor-inactive',
+  ]) {
+    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    assert.ok(customer, `Expected seed customer ${customerId}`);
+  }
+
+  for (const sku of ['CBL-1.5-100', 'SWB-6W', 'LED-12W']) {
+    const product = await prisma.product.findUnique({ where: { sku } });
+    assert.ok(product, `Expected seed product SKU ${sku}`);
+  }
+
+  const followUp = await prisma.customerFollowUp.findUnique({
+    where: { id: 'seed-followup-1' },
+    include: { customer: true, createdBy: true },
+  });
+  assert.ok(followUp, 'Expected seed follow-up seed-followup-1');
+  assert.ok(followUp.customer.id);
+  assert.ok(followUp.createdBy.id);
+
+  for (const movementId of ['seed-movement-in-1', 'seed-movement-out-1']) {
+    const movement = await prisma.stockMovement.findUnique({
+      where: { id: movementId },
+      include: { product: true, createdBy: true },
+    });
+    assert.ok(movement, `Expected seed stock movement ${movementId}`);
+    assert.ok(movement.product.id);
+    assert.ok(movement.createdBy.id);
+  }
 
   const challan = await prisma.salesChallan.findUnique({
     where: { challanNumber: 'CHL-DEV-0001' },
@@ -170,29 +197,17 @@ test('database schema, seed, and relationships are available', async (t) => {
     },
   });
 
-  assert.ok(challan, 'Expected seeded draft challan');
-  assert.equal(challan?.status, 'DRAFT');
-  assert.ok(challan?.customer.id);
-  assert.equal(challan?.createdBy.role, 'SALES');
-  assert.equal(challan?.items.length, 2);
+  assert.ok(challan, 'Expected seeded draft challan CHL-DEV-0001');
+  assert.equal(challan.status, 'DRAFT');
+  assert.ok(challan.customer.id);
+  assert.equal(challan.createdBy.role, 'SALES');
+  assert.equal(challan.items.length, 2, 'Expected seed challan CHL-DEV-0001 to have 2 line items');
 
-  for (const item of challan?.items ?? []) {
+  for (const item of challan.items) {
     assert.ok(item.productId);
     assert.ok(item.productNameSnapshot.length > 0);
     assert.ok(item.skuSnapshot.length > 0);
     assert.ok(item.unitPriceSnapshot);
     assert.ok(item.quantity > 0);
   }
-
-  const followUp = await prisma.customerFollowUp.findFirst({
-    include: { customer: true, createdBy: true },
-  });
-  assert.ok(followUp?.customer.id);
-  assert.ok(followUp?.createdBy.id);
-
-  const movement = await prisma.stockMovement.findFirst({
-    include: { product: true, createdBy: true },
-  });
-  assert.ok(movement?.product.id);
-  assert.ok(movement?.createdBy.id);
 });

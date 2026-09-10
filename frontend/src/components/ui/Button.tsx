@@ -49,7 +49,15 @@ export function Button({
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? <span className="sr-only">Loading</span> : null}
+      {loading ? (
+        <>
+          <span className="sr-only">Loading</span>
+          <span
+            className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+            aria-hidden="true"
+          />
+        </>
+      ) : null}
       {children}
     </button>
   );

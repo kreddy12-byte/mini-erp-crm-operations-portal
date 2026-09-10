@@ -29,11 +29,18 @@ export function Select({
   const selectId = id ?? props.name ?? label.toLowerCase().replace(/\s+/g, '-');
   const hintId = hint ? `${selectId}-hint` : undefined;
   const errorId = error ? `${selectId}-error` : undefined;
+  const required = Boolean(props.required);
 
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={selectId} className="text-sm font-medium text-ink">
         {label}
+        {required ? (
+          <span className="text-danger" aria-hidden="true">
+            {' '}
+            *
+          </span>
+        ) : null}
       </label>
       <div className="relative">
         <select
@@ -43,7 +50,7 @@ export function Select({
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           className={cn(
             'h-10 w-full appearance-none rounded-md border bg-surface py-0 pl-3 pr-10 text-sm text-ink',
-            'transition-colors disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted',
+            'transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted',
             error ? 'border-danger' : 'border-line-strong hover:border-ink-muted',
             className,
           )}
