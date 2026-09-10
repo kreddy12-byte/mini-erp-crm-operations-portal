@@ -35,6 +35,7 @@ export async function disconnectDatabase(): Promise<void> {
 
 export async function pingDatabase(): Promise<'connected' | 'disconnected'> {
   try {
+    await prisma.$connect();
     await prisma.$queryRaw`SELECT 1`;
     return 'connected';
   } catch {
