@@ -242,7 +242,7 @@ function CustomerDetailRecord({ id, onRetry }: { id: string; onRetry: () => void
 
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-section">Activity</h2>
+            <h2 className="text-section">Follow-up activity</h2>
             {canManage ? (
               <Button variant="ghost" size="sm" onClick={() => setFollowUpOpen(true)}>
                 Add
@@ -258,8 +258,14 @@ function CustomerDetailRecord({ id, onRetry }: { id: string; onRetry: () => void
             <ol className="space-y-4 border-l border-line pl-4">
               {followUps.map((item) => (
                 <li key={item.id}>
-                  <p className="text-sm font-medium text-ink">{item.createdBy.name}</p>
-                  <p className="text-caption">{formatDateTime(item.createdAt)}</p>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-ink">{item.createdBy.name}</p>
+                    <p className="text-caption">{formatDateTime(item.createdAt)}</p>
+                  </div>
+                  <p className="mt-1 text-caption">
+                    Follow-up date: {formatDate(item.followUpDate)}
+                    {item.createdBy.role ? ` · ${item.createdBy.role}` : ''}
+                  </p>
                   <p className="mt-1 text-secondary">{item.note}</p>
                 </li>
               ))}

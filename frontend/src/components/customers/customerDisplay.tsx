@@ -1,12 +1,26 @@
 import type { CustomerStatus } from '../../types/customer.ts';
 import { Badge } from '../ui/Badge.tsx';
-import { followUpUrgency, formatDate } from '../../utils/dates.ts';
+import { followUpUrgency, formatDate, type FollowUpUrgency } from '../../utils/dates.ts';
 import { cn } from '../../utils/cn.ts';
 import { CUSTOMER_STATUS_LABELS } from '../../constants/customer.ts';
 
 export function CustomerStatusBadge({ status }: { status: CustomerStatus }) {
   const tone = status === 'ACTIVE' ? 'success' : status === 'LEAD' ? 'warning' : 'neutral';
   return <Badge tone={tone}>{CUSTOMER_STATUS_LABELS[status]}</Badge>;
+}
+
+const FOLLOW_UP_STATE_LABELS: Record<FollowUpUrgency, string> = {
+  overdue: 'Overdue',
+  today: 'Due today',
+  upcoming: 'Upcoming',
+  none: 'No follow-up',
+};
+
+export function FollowUpStateBadge({ value }: { value: string | null | undefined }) {
+  const urgency = followUpUrgency(value);
+  const tone =
+    urgency === 'overdue' ? 'danger' : urgency === 'today' ? 'warning' : urgency === 'upcoming' ? 'info' : 'neutral';
+  return <Badge tone={tone}>{FOLLOW_UP_STATE_LABELS[urgency]}</Badge>;
 }
 
 export function FollowUpDate({ value }: { value: string | null | undefined }) {

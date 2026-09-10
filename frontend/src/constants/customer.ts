@@ -11,3 +11,7 @@ export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
   ACTIVE: 'Active',
   INACTIVE: 'Inactive',
 };
+
+export function canAccessCrm(role?: string): boolean {
+  return role === 'ADMIN' || role === 'SALES';
+}

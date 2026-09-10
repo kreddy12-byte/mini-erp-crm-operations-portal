@@ -175,6 +175,11 @@ export function DashboardPage() {
                   <Button variant={canChallans ? 'secondary' : 'primary'}>Customers</Button>
                 </Link>
               ) : null}
+              {canCustomers ? (
+                <Link to={paths.crm}>
+                  <Button variant="secondary">CRM / Follow-ups</Button>
+                </Link>
+              ) : null}
               {canProducts ? (
                 <Link to={paths.products}>
                   <Button variant="secondary">Products</Button>
@@ -266,10 +271,10 @@ export function DashboardPage() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-section">Overdue follow-ups</h2>
                 <Link
-                  to={`${paths.customers}?followUp=overdue`}
+                  to={`${paths.crm}?followUp=overdue`}
                   className="text-sm font-medium text-primary hover:text-primary-hover"
                 >
-                  Open customers
+                  Open CRM
                 </Link>
               </div>
               {overdueFollowUps.length === 0 ? (

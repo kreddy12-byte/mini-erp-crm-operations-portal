@@ -11,9 +11,10 @@ interface FollowUpModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (payload: CreateFollowUpPayload) => Promise<void>;
+  customerLabel?: string;
 }
 
-export function FollowUpModal({ open, onClose, onSubmit }: FollowUpModalProps) {
+export function FollowUpModal({ open, onClose, onSubmit, customerLabel }: FollowUpModalProps) {
   const [note, setNote] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -48,7 +49,11 @@ export function FollowUpModal({ open, onClose, onSubmit }: FollowUpModalProps) {
     <Modal
       open={open}
       title="Add follow-up"
-      description="This note is appended to the customer history. The author is taken from your signed-in account."
+      description={
+        customerLabel
+          ? `Append a note for ${customerLabel}. The author is taken from your signed-in account.`
+          : 'This note is appended to the customer history. The author is taken from your signed-in account.'
+      }
       onClose={submitting ? () => undefined : onClose}
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>

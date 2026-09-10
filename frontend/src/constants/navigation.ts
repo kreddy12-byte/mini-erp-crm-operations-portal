@@ -45,7 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: paths.products, label: 'Products', icon: 'products', roles: ALL_ROLES },
   { to: paths.inventory, label: 'Inventory', icon: 'inventory', roles: ALL_ROLES },
   { to: paths.challans, label: 'Sales Challans', icon: 'challans', roles: ALL_ROLES },
-  { to: paths.crm, label: 'CRM / Follow-ups', icon: 'crm', roles: ALL_ROLES },
+  { to: paths.crm, label: 'CRM / Follow-ups', icon: 'crm', roles: ['ADMIN', 'SALES'] },
 ];
 
 export function getNavItem(pathname: string): NavItem | undefined {
@@ -62,6 +62,6 @@ export function getNavItem(pathname: string): NavItem | undefined {
 }
 
 export function navItemsForRole(role: UserRole): NavItem[] {
-  // Customers is limited to ADMIN and SALES in the nav. Backend RBAC remains authoritative.
+  // Customers and CRM are limited to ADMIN and SALES in the nav. Backend RBAC remains authoritative.
   return NAV_ITEMS.filter((item) => item.roles.includes(role));
 }
