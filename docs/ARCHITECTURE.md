@@ -21,8 +21,8 @@ Backend source is grouped by HTTP role:
 - `controllers` translate HTTP to service calls
 - `services` own business rules (later phases)
 - `repositories` wrap Prisma; the shared client lives in `src/config/database.ts`
-- `validators` own request validation (later phases)
-- `middleware` owns cross-cutting HTTP behavior
+- `validators` own request validation
+- `middleware` owns cross-cutting HTTP behavior, including JWT authentication and RBAC
 
 ## API envelope
 
@@ -62,7 +62,7 @@ The shared `PrismaClient` is constructed once in `backend/src/config/database.ts
 
 | Model | Purpose |
 | --- | --- |
-| `User` | Staff accounts for a later JWT/RBAC phase |
+| `User` | Staff accounts (JWT + bcrypt + RBAC) |
 | `Customer` | CRM/customer master |
 | `CustomerFollowUp` | Follow-up timeline, separate from the customer's current note |
 | `Product` | Catalog and on-hand quantity |
@@ -125,8 +125,9 @@ Challan line items are part of the document, so they are removed only if the hea
 - Route tables live in `frontend/src/routes`.
 - `AppLayout` is the shell (sidebar + top bar + main).
 - `AuthLayout` is used for `/login`.
-- `ProtectedRoute` currently renders its outlet. JWT checks will be added later.
-- Axios lives in `frontend/src/services/api.ts`.
+- `ProtectedRoute` requires a restored authenticated session. Unauthenticated users are redirected to `/login`.
+- `GuestRoute` keeps `/login` public and sends authenticated users to `/dashboard`.
+- Auth state lives in `AuthProvider`. Axios lives in `frontend/src/services/api.ts` and attaches the Bearer token from `authSession`.
 
 ## Design system
 
@@ -140,8 +141,14 @@ Intent:
 - Subtle borders and low-elevation shadows
 - Status color is never the only signal (badges include a text label for screen readers)
 
+## Authentication
+
+Access tokens are JWTs signed with `JWT_SECRET`. Claims are limited to `sub` (user id) and `role`. Passwords are stored as bcrypt hashes and are never returned by the API.
+
+`authenticate` requires a Bearer token. `authorizeRoles(...)` is the reusable RBAC gate. Backend authorization is authoritative; the frontend only uses role for later navigation filtering.
+
 ## What is not implemented yet
 
-- JWT issuance, bcrypt, or role checks
 - Customer / product / inventory / challan / CRM HTTP APIs
 - Frontend business screens beyond Phase 1 placeholders
+- Refresh tokens, OAuth, password reset, or MFA

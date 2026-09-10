@@ -6,53 +6,56 @@ import {
   PrismaClient,
   UserRole,
 } from '@prisma/client';
+import { hashPassword } from '../src/utils/password';
 
 const prisma = new PrismaClient();
 
-const DEV_PASSWORD_HASH =
-  'phase2-dev-placeholder-hash-not-a-real-password-do-not-use-for-login';
+// Development/test login password. Documented in README. Never a production secret.
+const DEV_PASSWORD = 'DevLogin!2026';
 
 async function seed(): Promise<void> {
+  const passwordHash = await hashPassword(DEV_PASSWORD);
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin.dev@example.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       name: 'Dev Admin',
       email: 'admin.dev@example.com',
-      passwordHash: DEV_PASSWORD_HASH,
+      passwordHash,
       role: UserRole.ADMIN,
     },
   });
 
   const sales = await prisma.user.upsert({
     where: { email: 'sales.dev@example.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       name: 'Dev Sales',
       email: 'sales.dev@example.com',
-      passwordHash: DEV_PASSWORD_HASH,
+      passwordHash,
       role: UserRole.SALES,
     },
   });
 
   await prisma.user.upsert({
     where: { email: 'warehouse.dev@example.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       name: 'Dev Warehouse',
       email: 'warehouse.dev@example.com',
-      passwordHash: DEV_PASSWORD_HASH,
+      passwordHash,
       role: UserRole.WAREHOUSE,
     },
   });
 
   await prisma.user.upsert({
     where: { email: 'accounts.dev@example.com' },
-    update: {},
+    update: { passwordHash },
     create: {
       name: 'Dev Accounts',
       email: 'accounts.dev@example.com',
-      passwordHash: DEV_PASSWORD_HASH,
+      passwordHash,
       role: UserRole.ACCOUNTS,
     },
   });

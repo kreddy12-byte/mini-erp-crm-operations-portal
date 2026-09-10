@@ -9,7 +9,8 @@ import {
   ProductsIcon,
 } from '../../assets/icons.tsx';
 import { APP_NAME, APP_PRODUCT } from '../../constants/app.ts';
-import { NAV_ITEMS, type NavItem } from '../../constants/navigation.ts';
+import { NAV_ITEMS, navItemsForRole, type NavItem } from '../../constants/navigation.ts';
+import { useAuth } from '../../hooks/useAuth.ts';
 import { cn } from '../../utils/cn.ts';
 import { Button } from '../ui/Button.tsx';
 
@@ -40,9 +41,12 @@ function Brand() {
 }
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  const { user } = useAuth();
+  const items = user ? navItemsForRole(user.role) : NAV_ITEMS;
+
   return (
     <ul className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <li key={item.to}>
           <NavItemLink item={item} onNavigate={onNavigate} />
         </li>
@@ -78,6 +82,21 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
   );
 }
 
+function SidebarAccount() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="border-t border-line px-4 py-4">
+      <p className="truncate text-sm font-medium text-ink">{user.name}</p>
+      <p className="truncate text-caption">{user.role}</p>
+    </div>
+  );
+}
+
 export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <>
@@ -88,7 +107,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4">
           <NavList />
         </nav>
-        <p className="px-6 py-4 text-caption">Phase 1 foundation</p>
+        <SidebarAccount />
       </aside>
 
       <div
@@ -128,6 +147,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4">
             <NavList onNavigate={onClose} />
           </nav>
+          <SidebarAccount />
         </div>
       </div>
     </>

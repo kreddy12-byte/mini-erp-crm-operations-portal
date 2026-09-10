@@ -4,10 +4,12 @@ import { Badge } from '../components/ui/Badge.tsx';
 import { Card } from '../components/ui/Card.tsx';
 import { PageHeader } from '../components/ui/PageHeader.tsx';
 import { PageSkeleton } from '../components/ui/Skeleton.tsx';
+import { useAuth } from '../hooks/useAuth.ts';
 import { useHealth } from '../hooks/useHealth.ts';
 
 export function DashboardPage() {
   const health = useHealth();
+  const { user } = useAuth();
 
   return (
     <div>
@@ -34,6 +36,7 @@ export function DashboardPage() {
               <Badge tone="success">Healthy</Badge>
               <span className="text-secondary">
                 {health.data.service} · {health.data.environment}
+                {user ? ` · ${user.name} (${user.role})` : ''}
               </span>
             </div>
           </Card>

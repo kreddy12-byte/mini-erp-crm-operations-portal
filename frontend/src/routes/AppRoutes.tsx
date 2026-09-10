@@ -9,17 +9,19 @@ import { InventoryPage } from '../pages/InventoryPage.tsx';
 import { LoginPage } from '../pages/LoginPage.tsx';
 import { NotFoundPage } from '../pages/NotFoundPage.tsx';
 import { ProductsPage } from '../pages/ProductsPage.tsx';
-import { ProtectedRoute } from './ProtectedRoute.tsx';
+import { GuestRoute, ProtectedRoute } from './ProtectedRoute.tsx';
 
 export function AppRoutes() {
   return (
     <Routes>
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
+      <Route element={<GuestRoute />}>
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+        </Route>
       </Route>
 
-      <Route element={<AppLayout />}>
-        <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/customers" element={<CustomersPage />} />

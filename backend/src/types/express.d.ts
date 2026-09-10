@@ -1,5 +1,11 @@
-/**
- * Future phase: JWT/RBAC will attach the authenticated principal here.
- * Phase 1 does not implement authentication.
- */
+import type { AuthenticatedUser } from './auth';
+
+declare global {
+  namespace Express {
+    interface Request {
+      auth?: AuthenticatedUser;
+    }
+  }
+}
+
 export {};

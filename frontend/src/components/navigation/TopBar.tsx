@@ -1,6 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { BellIcon, MenuIcon, SearchIcon } from '../../assets/icons.tsx';
-import { getNavItem, paths } from '../../constants/navigation.ts';
+import { getNavItem } from '../../constants/navigation.ts';
+import { useAuth } from '../../hooks/useAuth.ts';
 import { useToast } from '../../hooks/useToast.ts';
 import { Badge } from '../ui/Badge.tsx';
 import { Button } from '../ui/Button.tsx';
@@ -16,6 +17,7 @@ export function TopBar({ mobileNavOpen, onOpenNav }: TopBarProps) {
   const location = useLocation();
   const current = getNavItem(location.pathname);
   const { pushToast } = useToast();
+  const { user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface">
@@ -87,15 +89,24 @@ export function TopBar({ mobileNavOpen, onOpenNav }: TopBarProps) {
             }
           />
 
-          <div className="ml-1 flex items-center gap-2 rounded-md border border-line px-2 py-1.5">
-            <Badge tone="neutral">Guest</Badge>
-            <Link
-              to={paths.login}
-              className="text-sm font-medium text-ink hover:text-primary"
-            >
-              Sign in
-            </Link>
-          </div>
+          <Dropdown
+            label="Account"
+            items={[
+              {
+                id: 'logout',
+                label: 'Sign out',
+                onSelect: logout,
+              },
+            ]}
+            trigger={
+              <span className="ml-1 flex items-center gap-2 rounded-md border border-line px-2 py-1.5">
+                <Badge tone="neutral">{user?.role ?? 'User'}</Badge>
+                <span className="hidden max-w-40 truncate text-sm font-medium text-ink sm:inline">
+                  {user?.name ?? 'Signed in'}
+                </span>
+              </span>
+            }
+          />
         </div>
       </div>
     </header>

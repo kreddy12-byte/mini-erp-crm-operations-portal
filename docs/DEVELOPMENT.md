@@ -67,10 +67,10 @@ Open http://localhost:5173.
 | `FRONTEND_URL` | backend CORS | Used |
 | `DATABASE_URL` | Prisma | Used |
 | `VITE_API_BASE_URL` | frontend Axios | Used |
-| `JWT_SECRET` | backend | Documented only |
-| `JWT_EXPIRES_IN` | backend | Documented only |
+| `JWT_SECRET` | backend | Used (signing/verifying access tokens) |
+| `JWT_EXPIRES_IN` | backend | Used (for example `1d`) |
 
-`DATABASE_URL` is required in production. Never hardcode credentials.
+`DATABASE_URL` and `JWT_SECRET` are required. In production `JWT_SECRET` must be a unique value of at least 32 characters. Never hardcode credentials.
 
 Prisma reads `DATABASE_URL` from `backend/.env`. Hosted Postgres (Neon, Supabase, Render) uses the same variable with SSL query parameters supplied by the provider.
 
@@ -98,7 +98,23 @@ Seed data is fake and deterministic. It exists to verify schema, relations, and 
 - Products with healthy, low, and zero stock
 - One follow-up, two stock movements, and one draft challan with snapshot line items
 
-`passwordHash` values are the literal placeholder `phase2-dev-placeholder-hash-not-a-real-password-do-not-use-for-login`. They are not bcrypt hashes. Login must not be built on this seed.
+Seeded users share the **development/test** password `DevLogin!2026`. Hashes are bcrypt. Do not use this password outside local development and automated tests.
+
+| Email | Role |
+| --- | --- |
+| `admin.dev@example.com` | ADMIN |
+| `sales.dev@example.com` | SALES |
+| `warehouse.dev@example.com` | WAREHOUSE |
+| `accounts.dev@example.com` | ACCOUNTS |
+
+## Authentication
+
+- `POST /api/auth/login` — public. Returns `{ token, user }` on success. Failed login always uses a generic invalid-credentials message.
+- `GET /api/auth/me` — requires `Authorization: Bearer <JWT>`.
+- Reusable `authenticate` middleware verifies the Bearer token and attaches `req.auth`.
+- Reusable `authorizeRoles(UserRole.ADMIN, ...)` returns 401 if unauthenticated and 403 if the role is not allowed.
+
+The frontend stores the access token in `localStorage` (key `mini-erp-crm.accessToken`) through `frontend/src/services/authSession.ts`. Axios attaches the header automatically. A 401 on a non-login request clears the session and returns the user to `/login`. Logout is client-side only; JWTs are stateless in this phase.
 
 ## Checks before a pull request
 
@@ -128,8 +144,7 @@ Keep controllers thin. Put stock mutations in a transaction in the service layer
 
 ## Future phases (not started)
 
-1. Authentication (JWT, bcrypt, RBAC)
-2. Customers
-3. Products and inventory
-4. Sales challans
-5. CRM follow-ups
+1. Customers
+2. Products and inventory
+3. Sales challans
+4. CRM follow-ups

@@ -1,5 +1,5 @@
 /**
- * HTTP/request validators will live here.
+ * HTTP/request validators live here.
  * Keep transport validation out of services so business rules stay testable.
  */
-export {};
+export { parseLoginBody } from './auth.validator';
