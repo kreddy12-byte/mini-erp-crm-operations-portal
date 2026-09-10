@@ -210,6 +210,15 @@ cd frontend && npm run typecheck && npm run build && npm run lint
 
 Database tests require a migrated PostgreSQL instance.
 
+### Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on pushes and pull requests to `master`:
+
+- **Backend:** `npm ci`, `prisma migrate deploy`, `prisma db seed` (required by existing tests), `npm test`, `npm run typecheck`, `npm run build`, with an ephemeral PostgreSQL 16 service
+- **Frontend:** `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`
+
+CI uses disposable dummy env values only. It does not deploy, publish images, or touch production databases.
+
 ## Adding a backend endpoint later
 
 1. Validator (request shape)
