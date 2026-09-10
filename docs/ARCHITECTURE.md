@@ -103,7 +103,7 @@ The product id keeps the line tied to the catalog row. The snapshot fields are t
 - `unitPrice` and `unitPriceSnapshot` use `Decimal(12, 2)`
 - Stock and movement quantities use integers
 - SQL `CHECK` constraints reject negative `currentStock` and non-positive movement/challan quantities
-- Atomic stock updates still belong in a later service/transaction phase
+- Stock changes go through `Product` + `StockMovement` in one Prisma interactive transaction with `SELECT ... FOR UPDATE` on the product row. Concurrent adjustments on the same product serialize. This is row locking, not a distributed lock. Prisma's transaction timeout (default 5s) is the practical limit.
 
 ### Delete strategy
 
@@ -153,9 +153,31 @@ Access tokens are JWTs signed with `JWT_SECRET`. Claims are limited to `sub` (us
 
 The Prisma `Customer` / `CustomerFollowUp` models from Phase 2 are reused without a new migration. Related sales challans are not exposed yet because the challan module is unimplemented.
 
+## Products and inventory
+
+The Phase 2 `Product` and `StockMovement` models are reused without a schema change. `Product.minStock` is the minimum stock alert quantity (the case-study name `minStockAlertQty`).
+
+Stock status is calculated in `backend/src/services/stock-status.ts` and returned on every product payload:
+
+- `CRITICAL` when `currentStock` is 0 (checked first, including when `minStock` is also 0)
+- `LOW` when `currentStock > 0` and `currentStock <= minStock`
+- `HEALTHY` when `currentStock > minStock`
+
+`PATCH /api/products/:id` cannot change `currentStock`. IN/OUT movements are the only stock writes. `createdBy` on a movement is always `req.auth.id`. Creating a product with `currentStock > 0` also writes an `Initial stock` IN movement in the same transaction.
+
+RBAC:
+
+| Action | ADMIN | WAREHOUSE | SALES | ACCOUNTS |
+| --- | --- | --- | --- | --- |
+| View products / inventory / history | yes | yes | yes | yes |
+| Create / edit products | yes | yes | no | no |
+| Record IN/OUT movements | yes | yes | no | no |
+
+Frontend routes: `/products`, `/products/:id`, `/inventory`. Navigation hiding is UX only.
+
 ## What is not implemented yet
 
-- Product / inventory / challan HTTP APIs
+- Sales challan HTTP APIs
 - Dashboard analytics
 - The aggregated `/crm` follow-up workspace
 - Refresh tokens, OAuth, password reset, or MFA

@@ -9,6 +9,7 @@ import { DashboardPage } from '../pages/DashboardPage.tsx';
 import { InventoryPage } from '../pages/InventoryPage.tsx';
 import { LoginPage } from '../pages/LoginPage.tsx';
 import { NotFoundPage } from '../pages/NotFoundPage.tsx';
+import { ProductDetailPage } from '../pages/ProductDetailPage.tsx';
 import { ProductsPage } from '../pages/ProductsPage.tsx';
 import { GuestRoute, ProtectedRoute } from './ProtectedRoute.tsx';
 
@@ -28,6 +29,7 @@ export function AppRoutes() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/challans" element={<ChallansPage />} />
           <Route path="/crm" element={<CrmPage />} />

@@ -12,3 +12,15 @@ export {
   listFollowUps,
   updateCustomer,
 } from './customers.repository';
+export {
+  adjustStock,
+  createProductWithOptionalOpening,
+  findProductById,
+  findProductBySku,
+  inventorySummary,
+  listCategories,
+  listMovements,
+  listProducts,
+  listRecentMovements,
+  updateProduct,
+} from './products.repository';

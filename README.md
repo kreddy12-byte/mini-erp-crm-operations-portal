@@ -2,7 +2,7 @@
 
 Production-oriented operations portal for customers, products, inventory, sales challans, and CRM follow-ups.
 
-**Current status:** Phases 1–4 are in place (foundation, PostgreSQL, JWT authentication, Customer CRM). Products, inventory, sales challans, and dashboard analytics are **not** implemented yet.
+**Current status:** Phases 1–5 are in place (foundation, PostgreSQL, JWT authentication, Customer CRM, Products & Inventory). Sales challans and dashboard analytics are **not** implemented yet.
 
 ## Technology stack
 
@@ -69,7 +69,7 @@ Password for every seeded user: `DevLogin!2026`
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled API |
 | `npm run typecheck` | Typecheck without emit |
-| `npm test` | Health, 404, database, authentication, and customer CRM tests |
+| `npm test` | Health, 404, database, authentication, customer CRM, and product/inventory tests |
 | `npm run prisma:validate` | Validate `schema.prisma` |
 | `npm run prisma:generate` | Generate Prisma Client |
 | `npm run prisma:migrate` | Create/apply development migrations |
@@ -128,6 +128,24 @@ There is no customer DELETE. Historical records are preserved.
 
 Frontend routes: `/customers`, `/customers/:id`.
 
+## Products and inventory
+
+All authenticated roles may view products and inventory. **ADMIN** and **WAREHOUSE** may create/edit products and record stock movements. **SALES** and **ACCOUNTS** are view-only. Navigation hiding is UX only.
+
+Stock cannot be edited on the product form. OUT movements that would go below zero are rejected with `409 INSUFFICIENT_STOCK` and neither stock nor history is changed.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/products` | Paginated list with `search`, `category`, `stockStatus`, `sortBy`, `sortOrder`, `page`, `pageSize` |
+| GET | `/api/products/:id` | Product detail, stock status, and recent movements |
+| POST | `/api/products` | Create product (optional opening IN movement when initial stock > 0) |
+| PATCH | `/api/products/:id` | Metadata update; `currentStock` is rejected |
+| GET | `/api/inventory` | Inventory-oriented list plus healthy/low/critical summary |
+| GET | `/api/inventory/:productId/movements` | Paginated movement history |
+| POST | `/api/inventory/:productId/movements` | Record IN/OUT (`createdBy` is the authenticated user) |
+
+Frontend routes: `/products`, `/products/:id`, `/inventory`. There is no movement DELETE.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
@@ -135,7 +153,7 @@ Frontend routes: `/customers`, `/customers/:id`.
 
 ## Current limitations
 
-- No product, inventory, or sales challan business APIs
+- No sales challan business APIs
 - Dashboard does not yet show operational analytics
 - Access tokens are stored in the browser for this case study (no refresh-token rotation)
 - JWT is stateless; logout is client-side only

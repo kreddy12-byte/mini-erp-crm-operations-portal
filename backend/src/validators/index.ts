@@ -9,3 +9,11 @@ export {
   parseCustomerListQuery,
   parseUpdateCustomerBody,
 } from './customer.validator';
+export {
+  parseCreateProductBody,
+  parseMovementListQuery,
+  parseProductId,
+  parseProductListQuery,
+  parseStockMovementBody,
+  parseUpdateProductBody,
+} from './product.validator';

@@ -16,6 +16,10 @@ export function customerPath(id: string): string {
   return `${paths.customers}/${id}`;
 }
 
+export function productPath(id: string): string {
+  return `${paths.products}/${id}`;
+}
+
 export interface NavItem {
   to: AppPath;
   label: string;
@@ -37,6 +41,9 @@ export const NAV_ITEMS: NavItem[] = [
 export function getNavItem(pathname: string): NavItem | undefined {
   if (pathname === paths.customers || pathname.startsWith(`${paths.customers}/`)) {
     return NAV_ITEMS.find((item) => item.to === paths.customers);
+  }
+  if (pathname === paths.products || pathname.startsWith(`${paths.products}/`)) {
+    return NAV_ITEMS.find((item) => item.to === paths.products);
   }
   return NAV_ITEMS.find((item) => item.to === pathname);
 }

@@ -126,6 +126,16 @@ Follow-up history rows also require `followUpDate` in the schema. If the client 
 
 Query parameters for `GET /api/customers`: `page`, `pageSize` (max 100), `search`, `status`, `customerType`, `followUp` (`overdue` \| `dueToday` \| `upcoming` \| `none`), `sortBy`, `sortOrder`.
 
+## Products and inventory
+
+`ADMIN` and `WAREHOUSE` can create and edit products and record IN/OUT movements. `SALES` and `ACCOUNTS` can list and view only.
+
+`Product.minStock` is the alert threshold. Status: `CRITICAL` at zero stock, `LOW` when on-hand is above zero but at or below min, otherwise `HEALTHY`.
+
+Stock updates use `prisma.$transaction` plus `SELECT ... FOR UPDATE` on the product row, then update `currentStock` and insert `StockMovement`. Failed OUT requests leave stock and history unchanged. Initial stock greater than zero writes an `Initial stock` IN movement in the same create transaction.
+
+Query parameters for `GET /api/products` and `GET /api/inventory`: `page`, `pageSize` (max 100), `search`, `category`, `location`, `stockStatus` (`HEALTHY` \| `LOW` \| `CRITICAL`), `sortBy`, `sortOrder`.
+
 ## Checks before a pull request
 
 ```bash
@@ -143,7 +153,7 @@ Database tests require a migrated PostgreSQL instance.
 4. Controller (HTTP)
 5. Route registration in `src/routes`
 
-Keep controllers thin. Put stock mutations in a transaction in the service layer when that phase starts.
+Keep controllers thin. Stock mutations already run in a Prisma transaction in the product repository.
 
 ## Adding a frontend screen later
 
@@ -154,7 +164,6 @@ Keep controllers thin. Put stock mutations in a transaction in the service layer
 
 ## Future phases (not started)
 
-1. Products and inventory
-2. Sales challans
-3. Aggregated follow-up workspace (`/crm`)
-4. Dashboard analytics
+1. Sales challans
+2. Aggregated follow-up workspace (`/crm`)
+3. Dashboard analytics

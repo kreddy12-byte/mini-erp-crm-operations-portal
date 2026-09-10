@@ -43,7 +43,7 @@ export function DashboardPage() {
 
           <EmptyState
             title="No operational data yet"
-            description="Customer records are available under Customers. Inventory, challan, and dashboard analytics will appear here after later phases."
+            description="Customers, products, and inventory are available from the sidebar. Sales challans and dashboard analytics will appear here after later phases."
           />
         </div>
       ) : null}
