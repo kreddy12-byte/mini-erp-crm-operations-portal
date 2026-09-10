@@ -37,20 +37,45 @@ enum ChallanStatus {
   CANCELLED
 }
 
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         UserRole
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  passwordHash    String?   @map("password_hash")
+  role            UserRole
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  googleId        String?   @unique @map("google_id")
+  tokenVersion    Int       @default(0) @map("token_version")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   followUps      CustomerFollowUp[] @relation("CustomerFollowUpAuthor")
   stockMovements StockMovement[]    @relation("StockMovementAuthor")
   salesChallans  SalesChallan[]     @relation("SalesChallanAuthor")
+  authTokens     AuthToken[]
 
   @@map("users")
+}
+
+model AuthToken {
+  id        String        @id @default(cuid())
+  userId    String        @map("user_id")
+  type      AuthTokenType
+  tokenHash String        @map("token_hash")
+  expiresAt DateTime      @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime?     @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId, type])
+  @@map("auth_tokens")
 }
 
 model Customer {

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { findPublicUserById } from '../repositories/users.repository';
+import { findUserById } from '../repositories/users.repository';
 import { AppError, ErrorCodes } from '../utils/app-error';
 import { asyncHandler } from '../utils/async-handler';
 import { verifyAccessToken } from '../utils/jwt';
@@ -16,11 +16,16 @@ export const authenticate = asyncHandler(async (req: Request, _res: Response, ne
   }
 
   const claims = verifyAccessToken(match[1]);
-  const user = await findPublicUserById(claims.sub);
-  if (!user) {
+  const user = await findUserById(claims.sub);
+  if (!user || user.tokenVersion !== claims.tokenVersion) {
     throw new AppError(401, ErrorCodes.UNAUTHORIZED, 'Authentication is required.');
   }
 
-  req.auth = user;
+  req.auth = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
   next();
 });

@@ -2,7 +2,7 @@
 
 Production-oriented operations portal for customers, products, inventory, sales challans, and CRM follow-ups.
 
-**Current status:** Phases 1–5 are in place (foundation, PostgreSQL, JWT authentication, Customer CRM, Products & Inventory). Sales challans and dashboard analytics are **not** implemented yet.
+**Current status:** Phases 1–5 are in place (foundation, PostgreSQL, authentication, Customer CRM, Products & Inventory). Authentication includes signup, Google sign-in, email verification, and password reset. Sales challans and dashboard analytics are **not** implemented yet.
 
 ## Technology stack
 
@@ -11,7 +11,7 @@ Production-oriented operations portal for customers, products, inventory, sales 
 | Frontend | React, Vite, TypeScript, Tailwind CSS, React Router, Axios |
 | Backend | Node.js, TypeScript, Express |
 | Database | PostgreSQL + Prisma |
-| Auth | JWT, bcrypt, RBAC |
+| Auth | JWT, bcrypt, RBAC, Google Identity, SMTP email |
 | Deployment (later) | Frontend on Vercel, API on Render, PostgreSQL on Neon / Supabase / Render |
 
 ## Local setup
@@ -44,7 +44,7 @@ If Docker is not available, point `DATABASE_URL` at a local PostgreSQL 16 instan
 - Health: http://localhost:4000/api/health
 - Web: http://localhost:5173
 
-Root `/` redirects to `/dashboard`. Unauthenticated users are sent to `/login`.
+Root `/` redirects to `/dashboard`. Unauthenticated users are sent to `/login`. Public auth routes: `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email`.
 
 ### Development / test credentials
 
@@ -69,7 +69,7 @@ Password for every seeded user: `DevLogin!2026`
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled API |
 | `npm run typecheck` | Typecheck without emit |
-| `npm test` | Health, 404, database, authentication, customer CRM, and product/inventory tests |
+| `npm test` | Health, 404, database, authentication (including signup/Google/reset), customer CRM, and product/inventory tests |
 | `npm run prisma:validate` | Validate `schema.prisma` |
 | `npm run prisma:generate` | Generate Prisma Client |
 | `npm run prisma:migrate` | Create/apply development migrations |
@@ -93,21 +93,36 @@ Used now:
 
 - `PORT`, `NODE_ENV`, `FRONTEND_URL`, `DATABASE_URL`
 - `JWT_SECRET`, `JWT_EXPIRES_IN`
-- `VITE_API_BASE_URL`
+- `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`
 
 Never commit real secrets. `JWT_SECRET` must be a unique value in every environment.
 
+Signup, verification, and password-reset emails require SMTP. Google sign-in requires a Google OAuth client ID. If those are missing, the API returns a clear 503 instead of pretending the action succeeded.
+
 ## Authentication
 
-`POST /api/auth/login` validates email and password, compares the stored bcrypt hash, and returns a JWT plus safe user fields (`id`, `name`, `email`, `role`). Password hashes are never returned.
+Public self-registration always creates a **SALES** user. The signup request cannot choose `ADMIN`, `WAREHOUSE`, or `ACCOUNTS`. Google-created accounts use the same default. Seeded staff accounts remain the way to obtain privileged roles in local development.
+
+Password hashes use bcrypt (cost 10) and are never returned. Verification and reset tokens are stored as SHA-256 hashes, expire, and are single-use. Password login requires a verified email.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/auth/signup` | Create a SALES account and send a verification email |
+| POST | `/api/auth/login` | Email/password login (verified accounts only) |
+| POST | `/api/auth/google` | Google Identity Services ID token, verified server-side |
+| POST | `/api/auth/verify-email` | Consume a verification token and issue a session |
+| POST | `/api/auth/resend-verification` | Resend a verification email (generic response) |
+| POST | `/api/auth/forgot-password` | Send a reset email (generic response) |
+| POST | `/api/auth/reset-password` | Set a new password and bump `tokenVersion` |
+| GET | `/api/auth/me` | Current user; requires `Authorization: Bearer <JWT>` |
 
 Authenticated requests send:
 
 ```
 Authorization: Bearer <token>
 ```
-
-`GET /api/auth/me` returns the current user and requires a valid JWT.
 
 Roles: `ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`. Reusable `authorizeRoles(...)` middleware returns 401 when unauthenticated and 403 when the role is not allowed. Frontend navigation can read the role; backend RBAC remains authoritative.
 
@@ -155,5 +170,6 @@ Frontend routes: `/products`, `/products/:id`, `/inventory`. There is no movemen
 
 - No sales challan business APIs
 - Dashboard does not yet show operational analytics
-- Access tokens are stored in the browser for this case study (no refresh-token rotation)
-- JWT is stateless; logout is client-side only
+- Access tokens are stored in `localStorage` (XSS-sensitive; see architecture notes). Logout deletes the browser copy; password reset increments `tokenVersion` so older JWTs stop working.
+- SMTP and Google credentials are environment-specific and are not included in the repo
+- There is no MFA and no refresh-token rotation

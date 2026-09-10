@@ -62,7 +62,8 @@ The shared `PrismaClient` is constructed once in `backend/src/config/database.ts
 
 | Model | Purpose |
 | --- | --- |
-| `User` | Staff accounts (JWT + bcrypt + RBAC) |
+| `User` | Staff accounts (JWT + bcrypt + RBAC, optional Google identity) |
+| `AuthToken` | Hashed, expiring, single-use email verification and password reset tokens |
 | `Customer` | CRM/customer master |
 | `CustomerFollowUp` | Follow-up timeline, separate from the customer's current note |
 | `Product` | Catalog and on-hand quantity |
@@ -78,7 +79,8 @@ Location/warehouse is a `Product.location` string. A warehouse subsystem is out 
 User
  ├── CustomerFollowUp (author)
  ├── StockMovement (author)
- └── SalesChallan (author)
+ ├── SalesChallan (author)
+ └── AuthToken (verification / reset; cascade on user delete)
 
 Customer
  ├── CustomerFollowUp
@@ -112,6 +114,7 @@ Historical documents must survive master-data cleanup.
 | Parent delete | Child | Behavior |
 | --- | --- | --- |
 | User | follow-ups, movements, challans | Restrict |
+| User | auth tokens | Cascade |
 | Customer | follow-ups, challans | Restrict |
 | Product | movements, challan items | Restrict |
 | SalesChallan | challan items | Cascade |
@@ -124,9 +127,10 @@ Challan line items are part of the document, so they are removed only if the hea
 
 - Route tables live in `frontend/src/routes`.
 - `AppLayout` is the shell (sidebar + top bar + main).
-- `AuthLayout` is used for `/login`.
+- `AuthLayout` is used for `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/verify-email`.
 - `ProtectedRoute` requires a restored authenticated session. Unauthenticated users are redirected to `/login`.
-- `GuestRoute` keeps `/login` public and sends authenticated users to `/dashboard`.
+- `GuestRoute` keeps `/login`, `/signup`, and `/forgot-password` public and sends authenticated users to `/dashboard`.
+- `/reset-password` and `/verify-email` stay reachable with a token even if a session already exists, so email links are not discarded.
 - Auth state lives in `AuthProvider`. Axios lives in `frontend/src/services/api.ts` and attaches the Bearer token from `authSession`.
 
 ## Design system
@@ -143,9 +147,52 @@ Intent:
 
 ## Authentication
 
-Access tokens are JWTs signed with `JWT_SECRET`. Claims are limited to `sub` (user id) and `role`. Passwords are stored as bcrypt hashes and are never returned by the API.
+Access tokens are JWTs signed with `JWT_SECRET`. Claims are `sub` (user id), `role`, and `tokenVersion`. Passwords are stored as bcrypt hashes (cost 10) and are never returned by the API. `passwordHash` is nullable so Google-only accounts do not store a password.
 
-`authenticate` requires a Bearer token. `authorizeRoles(...)` is the reusable RBAC gate. Backend authorization is authoritative; the frontend only uses role for navigation filtering.
+`authenticate` requires a Bearer token, loads the user, and rejects the session when `tokenVersion` does not match (used after password reset). `authorizeRoles(...)` is the reusable RBAC gate. Backend authorization is authoritative; the frontend only uses role for navigation filtering.
+
+### Signup and default role
+
+Public `POST /api/auth/signup` ignores any `role` field on the request. New self-registered users are always `SALES`. This is an ERP security rule: a public form must not be able to select `ADMIN`, `WAREHOUSE`, or `ACCOUNTS`. Privileged roles are assigned by seed data or by an administrator outside this public flow. There is no public endpoint that lets a user elevate their own role.
+
+Password rules: at least 10 characters, at least one letter and one number, confirmation must match. Email is trimmed and lowercased.
+
+Signup does not return a JWT. The user must verify email first.
+
+### Email verification and password reset
+
+`AuthToken` rows store SHA-256 hashes of opaque tokens (`randomBytes(32)` as base64url). Raw tokens appear only in emailed links built from `FRONTEND_URL`. Tokens expire (24h verification, 1h reset), are single-use, and unused tokens of the same type are invalidated when a new one is issued.
+
+`EmailService` (`backend/src/services/email.service.ts`) is the delivery abstraction. Authentication code does not contain SMTP details. If `SMTP_HOST` or `EMAIL_FROM` is missing, signup/resend/forgot-password return `503 EMAIL_NOT_CONFIGURED` instead of claiming that mail was sent.
+
+Forgot-password and resend-verification use the same generic success message whether or not the email exists, after email delivery is confirmed to be configured.
+
+Password reset hashes the new password with bcrypt and increments `tokenVersion` so previously issued JWTs fail `authenticate`.
+
+### Google sign-in
+
+The React app uses Google Identity Services to obtain an ID token. `POST /api/auth/google` verifies that token server-side with `google-auth-library` (`GOOGLE_CLIENT_ID` as audience). The API never trusts a client-supplied email.
+
+- Existing `googleId` → sign in
+- Existing user with the same verified email → link `googleId` and sign in (role unchanged)
+- New Google user → create `SALES` account with `passwordHash` null and email already verified
+
+If `GOOGLE_CLIENT_ID` is unset, the API returns `503 GOOGLE_NOT_CONFIGURED`. The frontend shows a clear error when `VITE_GOOGLE_CLIENT_ID` is missing. There is no fake Google button success path.
+
+### JWT storage tradeoff
+
+The frontend keeps the access token in `localStorage` (`mini-erp-crm.accessToken`) and sends `Authorization: Bearer`. HttpOnly cookies were not adopted here because the existing Axios Bearer architecture already works for this case study and switching storage would require CSRF work for a cookie session. The XSS tradeoff is documented: a script injected into the origin can read the token. Logout is client-side deletion; the JWT remains cryptographically valid until expiry unless `tokenVersion` has changed.
+
+A “remember me” checkbox is not offered. Persistence already matches `JWT_EXPIRES_IN`; a checkbox that did not change server expiry would be misleading.
+
+### Rate limiting
+
+In-memory limits (process-local, not Redis):
+
+- 8 failed password logins per email per 15 minutes
+- 5 signup / resend / forgot-password requests per email per 15 minutes
+
+This is a practical case-study control, not a distributed rate limiter.
 
 ## Customer CRM
 
@@ -180,4 +227,4 @@ Frontend routes: `/products`, `/products/:id`, `/inventory`. Navigation hiding i
 - Sales challan HTTP APIs
 - Dashboard analytics
 - The aggregated `/crm` follow-up workspace
-- Refresh tokens, OAuth, password reset, or MFA
+- Refresh tokens or MFA

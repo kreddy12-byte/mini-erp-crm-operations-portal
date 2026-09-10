@@ -2,7 +2,14 @@
  * HTTP/request validators live here.
  * Keep transport validation out of services so business rules stay testable.
  */
-export { parseLoginBody } from './auth.validator';
+export {
+  parseEmailBody,
+  parseGoogleAuthBody,
+  parseLoginBody,
+  parseResetPasswordBody,
+  parseSignupBody,
+  parseTokenBody,
+} from './auth.validator';
 export {
   parseCreateCustomerBody,
   parseCreateFollowUpBody,

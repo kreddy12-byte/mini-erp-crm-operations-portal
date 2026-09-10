@@ -11,3 +11,7 @@ export interface LoginResult {
   token: string;
   user: AuthUser;
 }
+
+export interface SignupResult {
+  user: AuthUser;
+}

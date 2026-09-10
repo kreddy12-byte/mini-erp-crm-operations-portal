@@ -4,6 +4,7 @@ import { prisma } from '../src/config/database';
 
 const expectedTables = [
   'users',
+  'auth_tokens',
   'customers',
   'customer_follow_ups',
   'products',
@@ -52,6 +53,7 @@ test('database schema, seed, and relationships are available', async (t) => {
   `;
   const uniqueNames = uniqueIndexes.map((row) => row.indexname);
   assert.ok(uniqueNames.includes('users_email_key'));
+  assert.ok(uniqueNames.includes('users_google_id_key'));
   assert.ok(uniqueNames.includes('products_sku_key'));
   assert.ok(uniqueNames.includes('sales_challans_challan_number_key'));
 
@@ -72,6 +74,7 @@ test('database schema, seed, and relationships are available', async (t) => {
   const deleteRule = (name: string) =>
     foreignKeys.find((row) => row.constraint_name === name)?.delete_rule;
 
+  assert.equal(deleteRule('auth_tokens_user_id_fkey'), 'CASCADE');
   assert.equal(deleteRule('customer_follow_ups_customer_id_fkey'), 'RESTRICT');
   assert.equal(deleteRule('customer_follow_ups_created_by_id_fkey'), 'RESTRICT');
   assert.equal(deleteRule('stock_movements_product_id_fkey'), 'RESTRICT');
@@ -110,6 +113,8 @@ test('database schema, seed, and relationships are available', async (t) => {
     'stock_movements_created_at_idx',
     'stock_movements_movement_type_idx',
     'sales_challans_status_idx',
+    'auth_tokens_token_hash_idx',
+    'auth_tokens_user_id_type_idx',
   ]) {
     assert.ok(indexNames.includes(indexName), `Expected index ${indexName}`);
   }

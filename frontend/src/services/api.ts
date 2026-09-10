@@ -29,9 +29,12 @@ api.interceptors.response.use(
   (error: AxiosError<ApiErrorPayload>) => {
     const status = error.response?.status ?? 0;
     const requestUrl = error.config?.url ?? '';
-    const isLoginRequest = requestUrl.includes('/auth/login');
+    const isPublicAuthRequest =
+      /\/auth\/(login|signup|google|forgot-password|reset-password|verify-email|resend-verification)\b/.test(
+        requestUrl,
+      );
 
-    if (status === 401 && !isLoginRequest) {
+    if (status === 401 && !isPublicAuthRequest) {
       clearAccessToken();
       notifyUnauthorized();
     }

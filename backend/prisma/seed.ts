@@ -18,45 +18,49 @@ async function seed(): Promise<void> {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin.dev@example.com' },
-    update: { passwordHash },
+    update: { passwordHash, emailVerifiedAt: new Date() },
     create: {
       name: 'Dev Admin',
       email: 'admin.dev@example.com',
       passwordHash,
       role: UserRole.ADMIN,
+      emailVerifiedAt: new Date(),
     },
   });
 
   const sales = await prisma.user.upsert({
     where: { email: 'sales.dev@example.com' },
-    update: { passwordHash },
+    update: { passwordHash, emailVerifiedAt: new Date() },
     create: {
       name: 'Dev Sales',
       email: 'sales.dev@example.com',
       passwordHash,
       role: UserRole.SALES,
+      emailVerifiedAt: new Date(),
     },
   });
 
   await prisma.user.upsert({
     where: { email: 'warehouse.dev@example.com' },
-    update: { passwordHash },
+    update: { passwordHash, emailVerifiedAt: new Date() },
     create: {
       name: 'Dev Warehouse',
       email: 'warehouse.dev@example.com',
       passwordHash,
       role: UserRole.WAREHOUSE,
+      emailVerifiedAt: new Date(),
     },
   });
 
   await prisma.user.upsert({
     where: { email: 'accounts.dev@example.com' },
-    update: { passwordHash },
+    update: { passwordHash, emailVerifiedAt: new Date() },
     create: {
       name: 'Dev Accounts',
       email: 'accounts.dev@example.com',
       passwordHash,
       role: UserRole.ACCOUNTS,
+      emailVerifiedAt: new Date(),
     },
   });
 

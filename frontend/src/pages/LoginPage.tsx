@@ -1,35 +1,39 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { APP_NAME, APP_PRODUCT } from '../constants/app.ts';
-import { useAuth } from '../hooks/useAuth.ts';
-import { ApiClientError } from '../types/api.ts';
+import { Link } from 'react-router-dom';
+import { AuthBrand } from '../components/auth/AuthBrand.tsx';
+import { AuthDivider } from '../components/auth/AuthDivider.tsx';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton.tsx';
+import { PasswordField } from '../components/auth/PasswordField.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Card } from '../components/ui/Card.tsx';
 import { Input } from '../components/ui/Input.tsx';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { paths } from '../constants/navigation.ts';
+import { useAuth } from '../hooks/useAuth.ts';
+import { ApiClientError } from '../types/api.ts';
+import { validateEmail } from '../utils/authValidation.ts';
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | undefined>();
   const [passwordError, setPasswordError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | undefined>();
+  const [unverified, setUnverified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
 
-    const nextEmailError = EMAIL_PATTERN.test(email.trim())
-      ? undefined
-      : 'Enter a valid email address.';
+    const nextEmailError = validateEmail(email);
     const nextPasswordError = password.length > 0 ? undefined : 'Enter your password.';
 
     setEmailError(nextEmailError);
     setPasswordError(nextPasswordError);
     setFormError(undefined);
+    setUnverified(false);
 
     if (nextEmailError || nextPasswordError) {
       return;
@@ -39,25 +43,17 @@ export function LoginPage() {
     try {
       await login(email.trim(), password);
     } catch (reason: unknown) {
-      const message =
-        reason instanceof ApiClientError
-          ? reason.message
-          : 'Unable to sign in. Please try again.';
-      setFormError(message);
+      const error = reason instanceof ApiClientError ? reason : null;
+      setUnverified(error?.code === 'EMAIL_NOT_VERIFIED');
+      setFormError(error?.message ?? 'Unable to sign in. Please try again.');
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="mb-8 flex items-center gap-3">
-        <img src="/favicon.svg" alt="" className="h-9 w-9 rounded-md" />
-        <div>
-          <p className="text-sm font-semibold text-ink">{APP_NAME}</p>
-          <p className="text-caption">{APP_PRODUCT}</p>
-        </div>
-      </div>
+    <div>
+      <AuthBrand />
 
       <Card padding="md">
         <h1 className="text-page-title">Sign in</h1>
@@ -75,10 +71,9 @@ export function LoginPage() {
             error={emailError}
             disabled={submitting}
           />
-          <Input
+          <PasswordField
             label="Password"
             name="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -86,9 +81,26 @@ export function LoginPage() {
             disabled={submitting}
           />
 
+          <div className="flex justify-end">
+            <Link to={paths.forgotPassword} className="text-sm font-medium text-primary hover:underline">
+              Forgot password
+            </Link>
+          </div>
+
           {formError ? (
             <p className="text-sm text-danger" role="alert">
               {formError}
+              {unverified ? (
+                <>
+                  {' '}
+                  <Link
+                    to={`${paths.verifyEmail}?email=${encodeURIComponent(email.trim().toLowerCase())}`}
+                    className="font-medium text-primary underline"
+                  >
+                    Resend verification
+                  </Link>
+                </>
+              ) : null}
             </p>
           ) : null}
 
@@ -96,6 +108,21 @@ export function LoginPage() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
+
+        <AuthDivider />
+
+        <GoogleSignInButton
+          disabled={submitting}
+          onCredential={signInWithGoogle}
+          onError={setFormError}
+        />
+
+        <p className="mt-6 text-center text-sm text-ink-secondary">
+          Need an account?{' '}
+          <Link to={paths.signup} className="font-medium text-primary hover:underline">
+            Sign up
+          </Link>
+        </p>
       </Card>
     </div>
   );

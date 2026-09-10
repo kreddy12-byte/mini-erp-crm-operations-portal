@@ -64,13 +64,52 @@ Open http://localhost:5173.
 | --- | --- | --- |
 | `PORT` | backend | Used |
 | `NODE_ENV` | backend | Used |
-| `FRONTEND_URL` | backend CORS | Used |
+| `FRONTEND_URL` | backend CORS and email action links | Used |
 | `DATABASE_URL` | Prisma | Used |
 | `VITE_API_BASE_URL` | frontend Axios | Used |
 | `JWT_SECRET` | backend | Used (signing/verifying access tokens) |
 | `JWT_EXPIRES_IN` | backend | Used (for example `1d`) |
+| `EMAIL_FROM` | backend | Required for verification/reset email |
+| `SMTP_HOST` | backend | Required for verification/reset email |
+| `SMTP_PORT` | backend | Used (default `587`) |
+| `SMTP_USER` / `SMTP_PASSWORD` | backend | Optional SMTP auth |
+| `SMTP_SECURE` | backend | `true` for TLS on connect (typically port 465) |
+| `GOOGLE_CLIENT_ID` | backend | Required for Google ID token verification |
+| `GOOGLE_CLIENT_SECRET` | backend | Optional; reserved for the Google Cloud OAuth client |
+| `VITE_GOOGLE_CLIENT_ID` | frontend | Same OAuth client ID as `GOOGLE_CLIENT_ID` |
 
 `DATABASE_URL` and `JWT_SECRET` are required. In production `JWT_SECRET` must be a unique value of at least 32 characters. Never hardcode credentials.
+
+### Local email (Mailpit)
+
+Signup and password reset attempt real SMTP delivery. They do **not** pretend to succeed when SMTP is missing.
+
+A local inbox that works without cloud credentials:
+
+```bash
+docker run -d --name mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit
+```
+
+In `backend/.env`:
+
+```
+FRONTEND_URL=http://localhost:5173
+EMAIL_FROM="Operations Portal <noreply@localhost>"
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_SECURE=false
+```
+
+Open http://localhost:8025 to read verification and reset messages. Action links use `FRONTEND_URL`.
+
+### Google sign-in
+
+1. Create a Web application OAuth client in Google Cloud.
+2. Authorized JavaScript origins: `http://localhost:5173` (and the deployed frontend origin).
+3. Set the same client ID in `backend/.env` (`GOOGLE_CLIENT_ID`) and `frontend/.env` (`VITE_GOOGLE_CLIENT_ID`).
+4. `GOOGLE_CLIENT_SECRET` is not required for ID-token verification; keep it in backend env if the Cloud client issued one, and never commit it.
+
+If either client ID is missing, Continue with Google fails with a configuration error instead of a fake success.
 
 Prisma reads `DATABASE_URL` from `backend/.env`. Hosted Postgres (Neon, Supabase, Render) uses the same variable with SSL query parameters supplied by the provider.
 
@@ -109,12 +148,20 @@ Seeded users share the **development/test** password `DevLogin!2026`. Hashes are
 
 ## Authentication
 
-- `POST /api/auth/login` — public. Returns `{ token, user }` on success. Failed login always uses a generic invalid-credentials message.
+Public self-registration always assigns **SALES**. Role is not accepted from the client. Google-created accounts use the same default. Seeded users remain verified so local password login keeps working.
+
+- `POST /api/auth/signup` — public. Creates an unverified SALES user and emails a verification link. Does not return a JWT. Duplicate email → `409 DUPLICATE_EMAIL`. Missing SMTP → `503 EMAIL_NOT_CONFIGURED`.
+- `POST /api/auth/login` — public. Returns `{ token, user }` for verified accounts. Failed login always uses a generic invalid-credentials message. Unverified users receive `403 EMAIL_NOT_VERIFIED`.
+- `POST /api/auth/google` — public. Body `{ idToken }`. Backend verifies the token with Google. New users are SALES.
+- `POST /api/auth/verify-email` — public. Body `{ token }`. Marks the email verified and returns a session JWT.
+- `POST /api/auth/resend-verification` — public. Generic success message.
+- `POST /api/auth/forgot-password` — public. Generic success message.
+- `POST /api/auth/reset-password` — public. Body `{ token, password, confirmPassword }`. Invalidates unused reset tokens and increments `tokenVersion`.
 - `GET /api/auth/me` — requires `Authorization: Bearer <JWT>`.
-- Reusable `authenticate` middleware verifies the Bearer token and attaches `req.auth`.
+- Reusable `authenticate` middleware verifies the Bearer token, checks `tokenVersion`, and attaches `req.auth`.
 - Reusable `authorizeRoles(UserRole.ADMIN, ...)` returns 401 if unauthenticated and 403 if the role is not allowed.
 
-The frontend stores the access token in `localStorage` (key `mini-erp-crm.accessToken`) through `frontend/src/services/authSession.ts`. Axios attaches the header automatically. A 401 on a non-login request clears the session and returns the user to `/login`. Logout is client-side only; JWTs are stateless in this phase.
+The frontend stores the access token in `localStorage` (key `mini-erp-crm.accessToken`) through `frontend/src/services/authSession.ts`. Axios attaches the header automatically. A 401 on a non-public-auth request clears the session and returns the user to `/login`. Logout is client-side deletion of that token. Password reset is the practical server-side session invalidation path (`tokenVersion`).
 
 ## Customer CRM
 

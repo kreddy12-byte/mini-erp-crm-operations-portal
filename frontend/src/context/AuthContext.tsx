@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ApiClientError } from '../types/api.ts';
 import type { AuthUser } from '../types/auth.ts';
-import { fetchCurrentUser, loginWithPassword } from '../services/auth.ts';
+import { fetchCurrentUser, loginWithGoogle, loginWithPassword } from '../services/auth.ts';
 import {
   AUTH_UNAUTHORIZED_EVENT,
   clearAccessToken,
@@ -70,13 +70,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [restoreAttempt, clearSession]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await loginWithPassword(email, password);
+  const establishSession = useCallback((result: { token: string; user: AuthUser }) => {
     setAccessToken(result.token);
     setUser(result.user);
     setRestoreError(null);
     setStatus('authenticated');
   }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const result = await loginWithPassword(email, password);
+      establishSession(result);
+    },
+    [establishSession],
+  );
+
+  const signInWithGoogle = useCallback(
+    async (idToken: string) => {
+      const result = await loginWithGoogle(idToken);
+      establishSession(result);
+    },
+    [establishSession],
+  );
 
   const logout = useCallback(() => {
     clearSession();
@@ -89,8 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, status, restoreError, login, logout, retryRestore }),
-    [user, status, restoreError, login, logout, retryRestore],
+    () => ({ user, status, restoreError, login, signInWithGoogle, establishSession, logout, retryRestore }),
+    [user, status, restoreError, login, signInWithGoogle, establishSession, logout, retryRestore],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

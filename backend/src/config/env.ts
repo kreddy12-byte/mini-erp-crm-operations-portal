@@ -29,18 +29,42 @@ if (!jwtExpiresIn.trim()) {
   throw new Error('JWT_EXPIRES_IN is required');
 }
 
+const smtpPort = Number.parseInt(process.env.SMTP_PORT ?? '587', 10);
+
 export const env = {
   PORT: Number.parseInt(process.env.PORT ?? '4000', 10),
   NODE_ENV: nodeEnv,
   isProduction: nodeEnv === 'production',
   isDevelopment: nodeEnv === 'development',
-  FRONTEND_URL: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+  FRONTEND_URL: (process.env.FRONTEND_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
   SERVICE_NAME: 'mini-erp-crm-api',
   DATABASE_URL: databaseUrl,
   JWT_SECRET: jwtSecret,
   JWT_EXPIRES_IN: jwtExpiresIn,
+  EMAIL_FROM: process.env.EMAIL_FROM ?? '',
+  SMTP_HOST: process.env.SMTP_HOST ?? '',
+  SMTP_PORT: smtpPort,
+  SMTP_USER: process.env.SMTP_USER ?? '',
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD ?? '',
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+  AUTH_VERIFY_TTL_MS: 24 * 60 * 60 * 1000,
+  AUTH_RESET_TTL_MS: 60 * 60 * 1000,
 } as const;
 
 if (!Number.isFinite(env.PORT) || env.PORT <= 0) {
   throw new Error('PORT must be a positive number');
+}
+
+if (!Number.isFinite(env.SMTP_PORT) || env.SMTP_PORT <= 0) {
+  throw new Error('SMTP_PORT must be a positive number');
+}
+
+export function isEmailDeliveryConfigured(): boolean {
+  return Boolean(env.SMTP_HOST && env.EMAIL_FROM);
+}
+
+export function isGoogleAuthConfigured(): boolean {
+  return Boolean(env.GOOGLE_CLIENT_ID);
 }

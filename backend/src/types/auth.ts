@@ -10,9 +10,14 @@ export interface AuthenticatedUser {
 export interface AccessTokenClaims {
   sub: string;
   role: UserRole;
+  tokenVersion: number;
 }
 
 export interface LoginResult {
   token: string;
+  user: AuthenticatedUser;
+}
+
+export interface SignupResult {
   user: AuthenticatedUser;
 }

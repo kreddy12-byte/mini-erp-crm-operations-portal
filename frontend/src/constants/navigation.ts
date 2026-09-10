@@ -2,6 +2,10 @@ import type { UserRole } from '../types/auth.ts';
 
 export const paths = {
   login: '/login',
+  signup: '/signup',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
+  verifyEmail: '/verify-email',
   dashboard: '/dashboard',
   customers: '/customers',
   products: '/products',

@@ -6,11 +6,15 @@ import { CrmPage } from '../pages/CrmPage.tsx';
 import { CustomerDetailPage } from '../pages/CustomerDetailPage.tsx';
 import { CustomersPage } from '../pages/CustomersPage.tsx';
 import { DashboardPage } from '../pages/DashboardPage.tsx';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage.tsx';
 import { InventoryPage } from '../pages/InventoryPage.tsx';
 import { LoginPage } from '../pages/LoginPage.tsx';
 import { NotFoundPage } from '../pages/NotFoundPage.tsx';
 import { ProductDetailPage } from '../pages/ProductDetailPage.tsx';
 import { ProductsPage } from '../pages/ProductsPage.tsx';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage.tsx';
+import { SignupPage } from '../pages/SignupPage.tsx';
+import { VerifyEmailPage } from '../pages/VerifyEmailPage.tsx';
 import { GuestRoute, ProtectedRoute } from './ProtectedRoute.tsx';
 
 export function AppRoutes() {
@@ -19,7 +23,14 @@ export function AppRoutes() {
       <Route element={<GuestRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
+      </Route>
+
+      <Route element={<AuthLayout />}>
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>

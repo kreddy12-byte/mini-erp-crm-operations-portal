@@ -6,6 +6,7 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>
   hint?: ReactNode;
   error?: string;
   hideLabel?: boolean;
+  trailing?: ReactNode;
 }
 
 export function Input({
@@ -13,6 +14,7 @@ export function Input({
   hint,
   error,
   hideLabel = false,
+  trailing,
   id,
   className,
   disabled,
@@ -33,19 +35,25 @@ export function Input({
       >
         {label}
       </label>
-      <input
-        id={inputId}
-        disabled={disabled}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
-        className={cn(
-          'h-10 w-full rounded-md border bg-surface px-3 text-sm text-ink placeholder:text-ink-muted',
-          'transition-colors disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted',
-          error ? 'border-danger' : 'border-line-strong hover:border-ink-muted',
-          className,
-        )}
-        {...props}
-      />
+      <div className="relative">
+        <input
+          id={inputId}
+          disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
+          className={cn(
+            'h-10 w-full rounded-md border bg-surface px-3 text-sm text-ink placeholder:text-ink-muted',
+            'transition-colors disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted',
+            trailing ? 'pr-10' : undefined,
+            error ? 'border-danger' : 'border-line-strong hover:border-ink-muted',
+            className,
+          )}
+          {...props}
+        />
+        {trailing ? (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-1">{trailing}</div>
+        ) : null}
+      </div>
       {hint && !error ? (
         <p id={hintId} className="text-caption">
           {hint}
