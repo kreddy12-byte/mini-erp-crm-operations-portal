@@ -166,6 +166,49 @@ export async function findChallanById(id: string) {
   });
 }
 
+/** PDF load includes GST/address without changing the public challan JSON select. */
+export async function findChallanForPdf(id: string) {
+  return prisma.salesChallan.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      challanNumber: true,
+      totalQuantity: true,
+      status: true,
+      createdAt: true,
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          mobile: true,
+          email: true,
+          businessName: true,
+          gstNumber: true,
+          address: true,
+        },
+      },
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+        },
+      },
+      items: {
+        orderBy: { createdAt: 'asc' as const },
+        select: {
+          id: true,
+          productId: true,
+          productNameSnapshot: true,
+          skuSnapshot: true,
+          unitPriceSnapshot: true,
+          quantity: true,
+        },
+      },
+    },
+  });
+}
+
 export async function createDraftChallan(input: {
   customerId: string;
   items: ChallanLineInput[];

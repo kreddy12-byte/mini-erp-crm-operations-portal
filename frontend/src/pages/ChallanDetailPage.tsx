@@ -15,7 +15,7 @@ import { formatUnitPrice } from '../constants/product.ts';
 import { paths } from '../constants/navigation.ts';
 import { useAuth } from '../hooks/useAuth.ts';
 import { useToast } from '../hooks/useToast.ts';
-import { cancelChallan, confirmChallan, getChallan } from '../services/challans.ts';
+import { cancelChallan, confirmChallan, downloadChallanPdf, getChallan } from '../services/challans.ts';
 import { getCustomer } from '../services/customers.ts';
 import { ApiClientError } from '../types/api.ts';
 import type { Challan } from '../types/challan.ts';
@@ -57,6 +57,7 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const canManage = canManageChallans(user?.role);
   const canLoadCustomer = canViewCustomersForChallans(user?.role);
 
@@ -124,6 +125,32 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
     }
   }
 
+  async function handleExportPdf() {
+    if (!challan || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const { blob, filename } = await downloadChallanPdf(challan.id);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      pushToast({
+        title: 'PDF exported',
+        description: 'The sales challan PDF is downloading.',
+        tone: 'success',
+      });
+    } catch (reason: unknown) {
+      const copy = describeChallanError(reason, 'Unable to export PDF');
+      pushToast({ title: copy.title, description: copy.description, tone: 'danger' });
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
   if (status === 'loading') {
     return (
       <div>
@@ -178,6 +205,9 @@ function ChallanDetailRecord({ id, onRetry }: { id: string; onRetry: () => void 
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => navigate(paths.challans)}>
               Back to list
+            </Button>
+            <Button variant="secondary" onClick={() => void handleExportPdf()} disabled={pdfLoading}>
+              {pdfLoading ? 'Preparing PDF…' : 'Export PDF'}
             </Button>
             {canManage && challan.status === 'DRAFT' ? (
               <>

@@ -195,6 +195,7 @@ Frontend: `/products`, `/products/:id`, `/inventory`. No movement DELETE.
 | --- | --- | --- |
 | GET | `/api/challans` | Paginated list |
 | GET | `/api/challans/:id` | Detail with snapshots |
+| GET | `/api/challans/:id/pdf` | Download Sales Challan PDF (read-only; historical snapshots) |
 | POST | `/api/challans` | Create draft |
 | PATCH | `/api/challans/:id` | Edit draft |
 | POST | `/api/challans/:id/confirm` | Confirm + atomic stock deduction |

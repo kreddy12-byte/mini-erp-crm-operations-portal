@@ -4,11 +4,13 @@ import {
   confirmChallan as persistConfirm,
   createDraftChallan,
   findChallanById,
+  findChallanForPdf,
   listChallans as queryChallans,
   updateDraftChallan,
 } from '../repositories/challans.repository';
 import { AppError, ErrorCodes } from '../utils/app-error';
 import { toPaginationMeta } from '../utils/pagination';
+import { buildChallanPdfBuffer } from './challan-pdf.service';
 
 function money(value: { toFixed?: (digits: number) => string } | string | number): string {
   if (typeof value === 'string') {
@@ -81,4 +83,48 @@ export async function confirmChallan(id: string, createdById: string) {
 export async function cancelChallan(id: string) {
   const challan = await cancelDraftChallan(id);
   return toChallan(challan);
+}
+
+/**
+ * Read-only PDF export. Does not mutate challan, stock, or related records.
+ * Line items always use SalesChallanItem snapshot fields.
+ */
+export async function generateChallanPdf(id: string) {
+  const challan = await findChallanForPdf(id);
+  if (!challan) {
+    throw new AppError(404, ErrorCodes.NOT_FOUND, 'Challan was not found.');
+  }
+  if (!challan.customer) {
+    throw new AppError(500, ErrorCodes.INTERNAL_ERROR, 'Challan customer data is unavailable.');
+  }
+
+  try {
+    return await buildChallanPdfBuffer({
+      challanNumber: challan.challanNumber,
+      status: challan.status,
+      totalQuantity: challan.totalQuantity,
+      createdAt: challan.createdAt,
+      createdBy: { name: challan.createdBy.name },
+      customer: {
+        name: challan.customer.name,
+        mobile: challan.customer.mobile,
+        email: challan.customer.email,
+        businessName: challan.customer.businessName,
+        gstNumber: challan.customer.gstNumber,
+        address: challan.customer.address,
+      },
+      items: challan.items.map((item) => ({
+        productNameSnapshot: item.productNameSnapshot,
+        skuSnapshot: item.skuSnapshot,
+        unitPriceSnapshot: item.unitPriceSnapshot,
+        quantity: item.quantity,
+      })),
+    });
+  } catch (error: unknown) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    console.error('Challan PDF generation failed');
+    throw new AppError(500, ErrorCodes.INTERNAL_ERROR, 'Unable to generate the challan PDF.');
+  }
 }

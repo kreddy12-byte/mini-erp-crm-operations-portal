@@ -3,6 +3,7 @@ import {
   cancelChallan,
   confirmChallan,
   createChallan,
+  generateChallanPdf,
   getChallan,
   listChallans,
   updateChallan,
@@ -33,6 +34,16 @@ export async function getById(req: Request, res: Response): Promise<void> {
   const id = parseChallanId(req.params.id);
   const challan = await getChallan(id);
   sendSuccess(res, { challan }, 'Challan loaded');
+}
+
+export async function exportPdf(req: Request, res: Response): Promise<void> {
+  const id = parseChallanId(req.params.id);
+  const { buffer, filename } = await generateChallanPdf(id);
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Length', String(buffer.length));
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.status(200).send(buffer);
 }
 
 export async function create(req: Request, res: Response): Promise<void> {

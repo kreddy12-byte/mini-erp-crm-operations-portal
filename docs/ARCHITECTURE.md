@@ -247,6 +247,8 @@ RBAC:
 
 Frontend routes: `/challans`, `/challans/new`, `/challans/:id`. Navigation hiding is UX only. Warehouse and Accounts can view but cannot create, edit, confirm, or cancel.
 
+`GET /api/challans/:id/pdf` is a read-only export for any role that can view challans. The PDF is generated server-side (PDFKit) and always uses `SalesChallanItem` snapshot fields (`productNameSnapshot`, `skuSnapshot`, `unitPriceSnapshot`), never live catalog values. Export does not confirm, cancel, or change stock.
+
 ## What is not implemented yet
 - Refresh tokens or MFA
 - Shared/distributed auth rate limiting across multiple API instances

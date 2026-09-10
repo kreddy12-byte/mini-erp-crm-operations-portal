@@ -80,6 +80,7 @@ No movement DELETE.
 | GET | `/challans` | Paginated list |
 | POST | `/challans` | Create `DRAFT` (no stock change) |
 | GET | `/challans/:id` | Detail with snapshots |
+| GET | `/challans/:id/pdf` | Download Sales Challan PDF (read-only; uses historical item snapshots) |
 | PATCH | `/challans/:id` | Edit draft only |
 | POST | `/challans/:id/confirm` | Atomic stock deduction |
 | POST | `/challans/:id/cancel` | Cancel draft only |
