@@ -24,3 +24,11 @@ export {
   listRecentMovements,
   updateProduct,
 } from './products.repository';
+export {
+  cancelDraftChallan,
+  confirmChallan,
+  createDraftChallan,
+  findChallanById,
+  listChallans,
+  updateDraftChallan,
+} from './challans.repository';

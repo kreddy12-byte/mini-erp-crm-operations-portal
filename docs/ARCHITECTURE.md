@@ -198,7 +198,7 @@ This is a practical case-study control, not a distributed rate limiter.
 
 `GET/POST /api/customers` and `GET/PATCH /api/customers/:id` plus nested follow-ups. `ADMIN` and `SALES` may manage customers. `WAREHOUSE` and `ACCOUNTS` cannot. Follow-up `createdBy` is always the authenticated user. Customer rows are not deleted.
 
-The Prisma `Customer` / `CustomerFollowUp` models from Phase 2 are reused without a new migration. Related sales challans are not exposed yet because the challan module is unimplemented.
+The Prisma `Customer` / `CustomerFollowUp` models from Phase 2 are reused without a new migration. Sales challans for a customer are listed through `GET /api/challans?customerId=`.
 
 ## Products and inventory
 
@@ -222,9 +222,30 @@ RBAC:
 
 Frontend routes: `/products`, `/products/:id`, `/inventory`. Navigation hiding is UX only.
 
+## Sales challans
+
+The Phase 2 `SalesChallan` / `SalesChallanItem` models are reused without a schema change. HTTP APIs live at `/api/challans`. There is no DELETE: historical documents stay in the database, and `CANCELLED` is the terminal draft exit.
+
+Lifecycle:
+
+- Create is always `DRAFT`. Stock is not reduced. No `OUT` movement is written.
+- `PATCH` is allowed only while `DRAFT`. Item snapshots are re-read from the current product rows. Clients cannot set `challanNumber`, `createdBy`, `status`, `createdAt`, `totalQuantity`, or snapshot fields.
+- `POST /api/challans/:id/confirm` runs in one Prisma interactive transaction: lock the challan `FOR UPDATE`, lock product rows `FOR UPDATE` in id order, reject the whole request if any line lacks stock, then deduct stock, write one `OUT` movement per line (`Sales challan {challanNumber}`), and set `CONFIRMED`. Snapshots are not rewritten.
+- `DRAFT → CANCELLED` is allowed and does not touch stock. `CONFIRMED → CANCELLED` is rejected (`409 INVALID_CHALLAN_STATE`) so inventory is not silently reversed.
+
+Challan numbers are allocated server-side as `CHL-YYYYMMDD-####` (UTC day sequence) under a PostgreSQL advisory lock, with the unique constraint as a collision backstop.
+
+RBAC:
+
+| Action | ADMIN | SALES | WAREHOUSE | ACCOUNTS |
+| --- | --- | --- | --- | --- |
+| View list / detail | yes | yes | yes | yes |
+| Create / edit drafts | yes | yes | no | no |
+| Confirm / cancel drafts | yes | yes | no | no |
+
 ## What is not implemented yet
 
-- Sales challan HTTP APIs
+- Sales challan frontend (the `/challans` page remains a placeholder)
 - Dashboard analytics
 - The aggregated `/crm` follow-up workspace
 - Refresh tokens or MFA

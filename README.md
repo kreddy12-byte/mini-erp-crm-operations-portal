@@ -2,7 +2,7 @@
 
 Production-oriented operations portal for customers, products, inventory, sales challans, and CRM follow-ups.
 
-**Current status:** Phases 1–5 are in place (foundation, PostgreSQL, authentication, Customer CRM, Products & Inventory). Authentication includes signup, Google sign-in, email verification, and password reset. Sales challans and dashboard analytics are **not** implemented yet.
+**Current status:** Phases 1–6 backend are in place (foundation, PostgreSQL, authentication, Customer CRM, Products & Inventory, Sales Challan APIs). The sales challan UI and dashboard analytics are **not** implemented yet.
 
 ## Technology stack
 
@@ -69,7 +69,7 @@ Password for every seeded user: `DevLogin!2026`
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled API |
 | `npm run typecheck` | Typecheck without emit |
-| `npm test` | Health, 404, database, authentication (including signup/Google/reset), customer CRM, and product/inventory tests |
+| `npm test` | Health, 404, database, authentication (including signup/Google/reset), customer CRM, product/inventory, and sales challan tests |
 | `npm run prisma:validate` | Validate `schema.prisma` |
 | `npm run prisma:generate` | Generate Prisma Client |
 | `npm run prisma:migrate` | Create/apply development migrations |
@@ -161,6 +161,23 @@ Stock cannot be edited on the product form. OUT movements that would go below ze
 
 Frontend routes: `/products`, `/products/:id`, `/inventory`. There is no movement DELETE.
 
+## Sales challans
+
+All authenticated roles may view challans. **ADMIN** and **SALES** may create and edit drafts, confirm, and cancel drafts. **WAREHOUSE** and **ACCOUNTS** are view-only. Navigation hiding is UX only.
+
+Create is always `DRAFT` and does not change stock. Confirmation deducts stock atomically, writes `OUT` movements, and sets `CONFIRMED`. Confirmed challans cannot be cancelled (no silent stock restore). There is no challan DELETE.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/challans` | Paginated list with `search`, `status`, `customerId`, `sortBy`, `sortOrder`, `page`, `pageSize` |
+| GET | `/api/challans/:id` | Challan detail with snapshot line items |
+| POST | `/api/challans` | Create a draft (`createdBy` is the authenticated user) |
+| PATCH | `/api/challans/:id` | Edit a draft customer/items; snapshots refresh from current products |
+| POST | `/api/challans/:id/confirm` | Confirm: lock, validate stock, deduct, write OUT movements |
+| POST | `/api/challans/:id/cancel` | Cancel a draft only |
+
+The `/challans` frontend page remains a placeholder.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
@@ -168,7 +185,7 @@ Frontend routes: `/products`, `/products/:id`, `/inventory`. There is no movemen
 
 ## Current limitations
 
-- No sales challan business APIs
+- Sales challan UI is not implemented yet (`/challans` is a placeholder)
 - Dashboard does not yet show operational analytics
 - Access tokens are stored in `localStorage` (XSS-sensitive; see architecture notes). Logout deletes the browser copy; password reset increments `tokenVersion` so older JWTs stop working.
 - SMTP and Google credentials are environment-specific and are not included in the repo

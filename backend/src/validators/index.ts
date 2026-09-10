@@ -24,3 +24,9 @@ export {
   parseStockMovementBody,
   parseUpdateProductBody,
 } from './product.validator';
+export {
+  parseChallanId,
+  parseChallanListQuery,
+  parseCreateChallanBody,
+  parseUpdateChallanBody,
+} from './challan.validator';

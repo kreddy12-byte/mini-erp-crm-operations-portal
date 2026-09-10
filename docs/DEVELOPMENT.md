@@ -183,6 +183,14 @@ Stock updates use `prisma.$transaction` plus `SELECT ... FOR UPDATE` on the prod
 
 Query parameters for `GET /api/products` and `GET /api/inventory`: `page`, `pageSize` (max 100), `search`, `category`, `location`, `stockStatus` (`HEALTHY` \| `LOW` \| `CRITICAL`), `sortBy`, `sortOrder`.
 
+## Sales challans
+
+`ADMIN` and `SALES` can create drafts, edit drafts, confirm, and cancel drafts. `WAREHOUSE` and `ACCOUNTS` can list and view only.
+
+Create is always `DRAFT` and does not change stock. Confirmation is the only stock write: one transaction, product row locks, all-or-nothing deduction, `OUT` movements, then `CONFIRMED`. Confirmed challans cannot be edited, re-confirmed, or cancelled. Cancelled challans cannot be edited or confirmed.
+
+Query parameters for `GET /api/challans`: `page`, `pageSize` (max 100), `search` (challan number, customer name, business name), `status` (`DRAFT` \| `CONFIRMED` \| `CANCELLED`), `customerId`, `sortBy`, `sortOrder`.
+
 ## Checks before a pull request
 
 ```bash
@@ -211,6 +219,6 @@ Keep controllers thin. Stock mutations already run in a Prisma transaction in th
 
 ## Future phases (not started)
 
-1. Sales challans
+1. Sales challan frontend
 2. Aggregated follow-up workspace (`/crm`)
 3. Dashboard analytics
