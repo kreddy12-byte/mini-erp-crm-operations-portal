@@ -3,6 +3,7 @@ import { AppLayout } from '../layouts/AppLayout.tsx';
 import { AuthLayout } from '../layouts/AuthLayout.tsx';
 import { ChallansPage } from '../pages/ChallansPage.tsx';
 import { CrmPage } from '../pages/CrmPage.tsx';
+import { CustomerDetailPage } from '../pages/CustomerDetailPage.tsx';
 import { CustomersPage } from '../pages/CustomersPage.tsx';
 import { DashboardPage } from '../pages/DashboardPage.tsx';
 import { InventoryPage } from '../pages/InventoryPage.tsx';
@@ -25,6 +26,7 @@ export function AppRoutes() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/challans" element={<ChallansPage />} />

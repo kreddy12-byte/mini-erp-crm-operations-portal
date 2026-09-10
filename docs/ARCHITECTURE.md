@@ -145,10 +145,17 @@ Intent:
 
 Access tokens are JWTs signed with `JWT_SECRET`. Claims are limited to `sub` (user id) and `role`. Passwords are stored as bcrypt hashes and are never returned by the API.
 
-`authenticate` requires a Bearer token. `authorizeRoles(...)` is the reusable RBAC gate. Backend authorization is authoritative; the frontend only uses role for later navigation filtering.
+`authenticate` requires a Bearer token. `authorizeRoles(...)` is the reusable RBAC gate. Backend authorization is authoritative; the frontend only uses role for navigation filtering.
+
+## Customer CRM
+
+`GET/POST /api/customers` and `GET/PATCH /api/customers/:id` plus nested follow-ups. `ADMIN` and `SALES` may manage customers. `WAREHOUSE` and `ACCOUNTS` cannot. Follow-up `createdBy` is always the authenticated user. Customer rows are not deleted.
+
+The Prisma `Customer` / `CustomerFollowUp` models from Phase 2 are reused without a new migration. Related sales challans are not exposed yet because the challan module is unimplemented.
 
 ## What is not implemented yet
 
-- Customer / product / inventory / challan / CRM HTTP APIs
-- Frontend business screens beyond Phase 1 placeholders
+- Product / inventory / challan HTTP APIs
+- Dashboard analytics
+- The aggregated `/crm` follow-up workspace
 - Refresh tokens, OAuth, password reset, or MFA

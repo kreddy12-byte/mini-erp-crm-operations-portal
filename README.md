@@ -2,7 +2,7 @@
 
 Production-oriented operations portal for customers, products, inventory, sales challans, and CRM follow-ups.
 
-**Current status:** Phases 1–3 are in place (application foundation, PostgreSQL + Prisma, JWT authentication). Business APIs for customers, products, inventory, challans, and CRM are **not** implemented yet.
+**Current status:** Phases 1–4 are in place (foundation, PostgreSQL, JWT authentication, Customer CRM). Products, inventory, sales challans, and dashboard analytics are **not** implemented yet.
 
 ## Technology stack
 
@@ -69,7 +69,7 @@ Password for every seeded user: `DevLogin!2026`
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled API |
 | `npm run typecheck` | Typecheck without emit |
-| `npm test` | Health, 404, database, and authentication tests |
+| `npm test` | Health, 404, database, authentication, and customer CRM tests |
 | `npm run prisma:validate` | Validate `schema.prisma` |
 | `npm run prisma:generate` | Generate Prisma Client |
 | `npm run prisma:migrate` | Create/apply development migrations |
@@ -111,6 +111,23 @@ Authorization: Bearer <token>
 
 Roles: `ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`. Reusable `authorizeRoles(...)` middleware returns 401 when unauthenticated and 403 when the role is not allowed. Frontend navigation can read the role; backend RBAC remains authoritative.
 
+## Customer CRM
+
+Customer records are available to **ADMIN** and **SALES**. Warehouse and Accounts receive 403 from the API. Navigation hiding is UX only.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/customers` | Paginated list with `search`, `status`, `customerType`, `followUp`, `sortBy`, `sortOrder`, `page`, `pageSize` |
+| GET | `/api/customers/:id` | Customer detail and recent follow-up history |
+| POST | `/api/customers` | Create customer |
+| PATCH | `/api/customers/:id` | Partial update |
+| GET | `/api/customers/:id/follow-ups` | Follow-up timeline |
+| POST | `/api/customers/:id/follow-ups` | Append a follow-up (`createdBy` is the authenticated user) |
+
+There is no customer DELETE. Historical records are preserved.
+
+Frontend routes: `/customers`, `/customers/:id`.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
@@ -118,6 +135,7 @@ Roles: `ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`. Reusable `authorizeRoles(...)`
 
 ## Current limitations
 
-- No customer, product, inventory, challan, or CRM business APIs
+- No product, inventory, or sales challan business APIs
+- Dashboard does not yet show operational analytics
 - Access tokens are stored in the browser for this case study (no refresh-token rotation)
 - JWT is stateless; logout is client-side only

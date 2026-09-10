@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/health.test.ts tests/database.test.ts tests/auth.test.ts",
+    "test": "tsx --test --test-concurrency=1 tests/health.test.ts tests/database.test.ts tests/auth.test.ts tests/customers.test.ts",
     "postinstall": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",

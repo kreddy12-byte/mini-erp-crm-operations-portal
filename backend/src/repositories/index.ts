@@ -4,3 +4,11 @@
  */
 export { prisma } from '../config/database';
 export { findPublicUserById, findUserByEmail } from './users.repository';
+export {
+  createCustomer,
+  createFollowUp,
+  findCustomerById,
+  listCustomers,
+  listFollowUps,
+  updateCustomer,
+} from './customers.repository';

@@ -116,6 +116,16 @@ Seeded users share the **development/test** password `DevLogin!2026`. Hashes are
 
 The frontend stores the access token in `localStorage` (key `mini-erp-crm.accessToken`) through `frontend/src/services/authSession.ts`. Axios attaches the header automatically. A 401 on a non-login request clears the session and returns the user to `/login`. Logout is client-side only; JWTs are stateless in this phase.
 
+## Customer CRM
+
+`ADMIN` and `SALES` can list, create, update, and add follow-ups. `WAREHOUSE` and `ACCOUNTS` are rejected with 403.
+
+`businessName` and `address` are NOT NULL in the existing Prisma schema. The API treats them as optional in the request body and stores an empty string when omitted, so no migration is required.
+
+Follow-up history rows also require `followUpDate` in the schema. If the client does not send a next follow-up date, the service uses the customer's current date or `now`.
+
+Query parameters for `GET /api/customers`: `page`, `pageSize` (max 100), `search`, `status`, `customerType`, `followUp` (`overdue` \| `dueToday` \| `upcoming` \| `none`), `sortBy`, `sortOrder`.
+
 ## Checks before a pull request
 
 ```bash
@@ -144,7 +154,7 @@ Keep controllers thin. Put stock mutations in a transaction in the service layer
 
 ## Future phases (not started)
 
-1. Customers
-2. Products and inventory
-3. Sales challans
-4. CRM follow-ups
+1. Products and inventory
+2. Sales challans
+3. Aggregated follow-up workspace (`/crm`)
+4. Dashboard analytics

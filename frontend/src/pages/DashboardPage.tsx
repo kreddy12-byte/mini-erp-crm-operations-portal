@@ -43,7 +43,7 @@ export function DashboardPage() {
 
           <EmptyState
             title="No operational data yet"
-            description="Business modules are not connected in this phase. Customer, inventory, challan, and CRM records will appear here after later phases."
+            description="Customer records are available under Customers. Inventory, challan, and dashboard analytics will appear here after later phases."
           />
         </div>
       ) : null}
