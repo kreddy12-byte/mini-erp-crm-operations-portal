@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SALES
+  WAREHOUSE
+  ACCOUNTS
+}
+
+enum CustomerType {
+  RETAIL
+  WHOLESALE
+  DISTRIBUTOR
+}
+
+enum CustomerStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum ChallanStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  followUps      CustomerFollowUp[] @relation("CustomerFollowUpAuthor")
+  stockMovements StockMovement[]    @relation("StockMovementAuthor")
+  salesChallans  SalesChallan[]     @relation("SalesChallanAuthor")
+
+  @@map("users")
+}
+
+model Customer {
+  id           String         @id @default(cuid())
+  name         String
+  mobile       String
+  email        String?
+  businessName String         @map("business_name")
+  gstNumber    String?        @map("gst_number")
+  customerType CustomerType   @map("customer_type")
+  address      String         @db.Text
+  status       CustomerStatus
+  followUpDate DateTime?      @map("follow_up_date") @db.Timestamptz(3)
+  notes        String?        @db.Text
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  followUps     CustomerFollowUp[]
+  salesChallans SalesChallan[]
+
+  @@index([status])
+  @@index([customerType])
+  @@index([followUpDate])
+  @@index([businessName])
+  @@index([mobile])
+  @@map("customers")
+}
+
+model CustomerFollowUp {
+  id           String   @id @default(cuid())
+  customerId   String   @map("customer_id")
+  note         String   @db.Text
+  followUpDate DateTime @map("follow_up_date") @db.Timestamptz(3)
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  customer  Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy User     @relation("CustomerFollowUpAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([customerId])
+  @@index([createdById])
+  @@index([followUpDate])
+  @@map("customer_follow_ups")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  sku          String   @unique
+  category     String
+  unitPrice    Decimal  @map("unit_price") @db.Decimal(12, 2)
+  currentStock Int      @default(0) @map("current_stock")
+  minStock     Int      @default(0) @map("min_stock")
+  location     String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  stockMovements StockMovement[]
+  challanItems   SalesChallanItem[]
+
+  @@map("products")
+}
+
+model StockMovement {
+  id           String       @id @default(cuid())
+  productId    String       @map("product_id")
+  quantity     Int
+  movementType MovementType @map("movement_type")
+  reason       String
+  createdById  String       @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdBy User    @relation("StockMovementAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([movementType])
+  @@map("stock_movements")
+}
+
+model SalesChallan {
+  id            String        @id @default(cuid())
+  challanNumber String        @unique @map("challan_number")
+  customerId    String        @map("customer_id")
+  totalQuantity Int           @map("total_quantity")
+  status        ChallanStatus @default(DRAFT)
+  createdById   String        @map("created_by_id")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  customer  Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy User               @relation("SalesChallanAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  items     SalesChallanItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("sales_challans")
+}
+
+model SalesChallanItem {
+  id                  String   @id @default(cuid())
+  challanId           String   @map("challan_id")
+  productId           String   @map("product_id")
+  // Preserve historical product information because product master data can change after a challan is created.
+  productNameSnapshot String   @map("product_name_snapshot")
+  skuSnapshot         String   @map("sku_snapshot")
+  unitPriceSnapshot   Decimal  @map("unit_price_snapshot") @db.Decimal(12, 2)
+  quantity            Int
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  challan SalesChallan @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([challanId])
+  @@index([productId])
+  @@map("sales_challan_items")
+}

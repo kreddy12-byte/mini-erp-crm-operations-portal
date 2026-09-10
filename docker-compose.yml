@@ -1,6 +1,5 @@
-# Placeholder for a later database phase.
-# Phase 1 does not start or connect to PostgreSQL.
-# This file is intentionally minimal and is not a production deployment.
+# Local PostgreSQL for development.
+# Not a production deployment. The API reads DATABASE_URL, not this file directly.
 
 services:
   postgres:

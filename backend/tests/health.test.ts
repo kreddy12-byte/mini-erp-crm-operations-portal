@@ -18,7 +18,7 @@ test('GET /api/health returns a structured success payload', async () => {
     const body = (await response.json()) as {
       success: boolean;
       message: string;
-      data: { service: string; environment: string };
+      data: { service: string; environment: string; database: string };
     };
 
     assert.equal(response.status, 200);
@@ -26,6 +26,7 @@ test('GET /api/health returns a structured success payload', async () => {
     assert.equal(body.message, 'API is healthy');
     assert.equal(body.data.service, 'mini-erp-crm-api');
     assert.equal(typeof body.data.environment, 'string');
+    assert.ok(body.data.database === 'connected' || body.data.database === 'disconnected');
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));

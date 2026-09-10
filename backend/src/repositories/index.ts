@@ -1,5 +1,5 @@
 /**
- * Persistence adapters will be registered here in the database phase (Prisma).
- * Services must not query a database directly once repositories exist.
+ * Persistence adapters wrap Prisma. Import the shared client from config/database.
+ * Do not construct PrismaClient inside repositories or request handlers.
  */
-export {};
+export { prisma } from '../config/database';
