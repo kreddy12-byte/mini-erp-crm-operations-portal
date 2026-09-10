@@ -176,7 +176,7 @@ Create is always `DRAFT` and does not change stock. Confirmation deducts stock a
 | POST | `/api/challans/:id/confirm` | Confirm: lock, validate stock, deduct, write OUT movements |
 | POST | `/api/challans/:id/cancel` | Cancel a draft only |
 
-The `/challans` frontend page remains a placeholder.
+Frontend routes: `/challans`, `/challans/new`, `/challans/:id`. Create and edit are available to Admin and Sales. Warehouse and Accounts can view.
 
 ## Documentation
 
@@ -185,7 +185,6 @@ The `/challans` frontend page remains a placeholder.
 
 ## Current limitations
 
-- Sales challan UI is not implemented yet (`/challans` is a placeholder)
 - Dashboard does not yet show operational analytics
 - Access tokens are stored in `localStorage` (XSS-sensitive; see architecture notes). Logout deletes the browser copy; password reset increments `tokenVersion` so older JWTs stop working.
 - SMTP and Google credentials are environment-specific and are not included in the repo

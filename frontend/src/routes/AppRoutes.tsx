@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout.tsx';
 import { AuthLayout } from '../layouts/AuthLayout.tsx';
+import { ChallanDetailPage } from '../pages/ChallanDetailPage.tsx';
+import { ChallanEditorPage } from '../pages/ChallanEditorPage.tsx';
 import { ChallansPage } from '../pages/ChallansPage.tsx';
 import { CrmPage } from '../pages/CrmPage.tsx';
 import { CustomerDetailPage } from '../pages/CustomerDetailPage.tsx';
@@ -43,6 +45,8 @@ export function AppRoutes() {
           <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/challans" element={<ChallansPage />} />
+          <Route path="/challans/new" element={<ChallanEditorPage />} />
+          <Route path="/challans/:id" element={<ChallanDetailPage />} />
           <Route path="/crm" element={<CrmPage />} />
         </Route>
       </Route>

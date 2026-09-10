@@ -24,6 +24,12 @@ export function productPath(id: string): string {
   return `${paths.products}/${id}`;
 }
 
+export function challanPath(id: string): string {
+  return `${paths.challans}/${id}`;
+}
+
+export const challanNewPath = `${paths.challans}/new`;
+
 export interface NavItem {
   to: AppPath;
   label: string;
@@ -48,6 +54,9 @@ export function getNavItem(pathname: string): NavItem | undefined {
   }
   if (pathname === paths.products || pathname.startsWith(`${paths.products}/`)) {
     return NAV_ITEMS.find((item) => item.to === paths.products);
+  }
+  if (pathname === paths.challans || pathname.startsWith(`${paths.challans}/`)) {
+    return NAV_ITEMS.find((item) => item.to === paths.challans);
   }
   return NAV_ITEMS.find((item) => item.to === pathname);
 }

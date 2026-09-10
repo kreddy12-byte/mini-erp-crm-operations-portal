@@ -243,9 +243,9 @@ RBAC:
 | Create / edit drafts | yes | yes | no | no |
 | Confirm / cancel drafts | yes | yes | no | no |
 
-## What is not implemented yet
+Frontend routes: `/challans`, `/challans/new`, `/challans/:id`. Navigation hiding is UX only. Warehouse and Accounts can view but cannot create, edit, confirm, or cancel.
 
-- Sales challan frontend (the `/challans` page remains a placeholder)
+## What is not implemented yet
 - Dashboard analytics
 - The aggregated `/crm` follow-up workspace
 - Refresh tokens or MFA

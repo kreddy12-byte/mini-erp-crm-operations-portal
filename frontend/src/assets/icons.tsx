@@ -159,6 +159,15 @@ export function EyeOffIcon(props: IconProps) {
   );
 }
 
+export function PlusIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </Icon>
+  );
+}
+
 export function EmptyIcon(props: IconProps) {
   return (
     <Icon {...props}>

@@ -191,6 +191,8 @@ Create is always `DRAFT` and does not change stock. Confirmation is the only sto
 
 Query parameters for `GET /api/challans`: `page`, `pageSize` (max 100), `search` (challan number, customer name, business name), `status` (`DRAFT` \| `CONFIRMED` \| `CANCELLED`), `customerId`, `sortBy`, `sortOrder`.
 
+Frontend routes: `/challans` (list), `/challans/new` (create draft), `/challans/:id` (document view; `?edit=1` for drafts). Confirmation uses a modal and the backend confirm endpoint; drafts never deduct stock in the browser.
+
 ## Checks before a pull request
 
 ```bash
@@ -219,6 +221,5 @@ Keep controllers thin. Stock mutations already run in a Prisma transaction in th
 
 ## Future phases (not started)
 
-1. Sales challan frontend
-2. Aggregated follow-up workspace (`/crm`)
-3. Dashboard analytics
+1. Aggregated follow-up workspace (`/crm`)
+2. Dashboard analytics
