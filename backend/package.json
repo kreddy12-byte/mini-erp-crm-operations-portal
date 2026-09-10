@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:deploy": "prisma migrate deploy && node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --test-concurrency=1 tests/health.test.ts tests/database.test.ts tests/auth.test.ts tests/auth-flows.test.ts tests/customers.test.ts tests/products.test.ts tests/challans.test.ts",
     "postinstall": "prisma generate",
@@ -31,6 +32,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^11.0.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.3"
   },

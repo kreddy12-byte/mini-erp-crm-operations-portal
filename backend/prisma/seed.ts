@@ -14,6 +14,17 @@ const prisma = new PrismaClient();
 const DEV_PASSWORD = 'DevLogin!2026';
 
 async function seed(): Promise<void> {
+  // Refuse accidental seeding of a production database with known demo passwords.
+  // Override only for an intentional, one-off bootstrap: ALLOW_PROD_SEED=true
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ALLOW_PROD_SEED !== 'true'
+  ) {
+    throw new Error(
+      'Refusing to run prisma seed while NODE_ENV=production. Set ALLOW_PROD_SEED=true only for intentional bootstrap.',
+    );
+  }
+
   const passwordHash = await hashPassword(DEV_PASSWORD);
 
   const admin = await prisma.user.upsert({

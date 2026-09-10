@@ -47,6 +47,8 @@ A healthy process with a reachable database looks like:
 }
 ```
 
+If the database is unreachable, the same route returns HTTP `503` with `database: "disconnected"` so readiness probes can fail.
+
 ### Frontend
 
 ```bash
@@ -77,6 +79,9 @@ Open http://localhost:5173.
 | `GOOGLE_CLIENT_ID` | backend | Required for Google ID token verification |
 | `GOOGLE_CLIENT_SECRET` | backend | Optional; reserved for the Google Cloud OAuth client |
 | `VITE_GOOGLE_CLIENT_ID` | frontend | Same OAuth client ID as `GOOGLE_CLIENT_ID` |
+| `ALLOW_PROD_SEED` | backend | Production only; must stay unset except intentional bootstrap |
+
+In production, `FRONTEND_URL` is required and must not be localhost. `JWT_SECRET` must be unique and at least 32 characters.
 
 `DATABASE_URL` and `JWT_SECRET` are required. In production `JWT_SECRET` must be a unique value of at least 32 characters. Never hardcode credentials.
 
@@ -219,7 +224,9 @@ Keep controllers thin. Stock mutations already run in a Prisma transaction in th
 3. Register the route in `src/routes/AppRoutes.tsx`.
 4. Reuse `PageHeader`, `EmptyState`, `ErrorState`, and `PageSkeleton`.
 
-## Future phases (not started)
+## Future work (optional)
 
-1. Aggregated follow-up workspace (`/crm`)
-2. Dashboard analytics
+1. Distributed rate limiting for multi-instance API hosts
+2. Deeper dashboard / BI analytics
+3. Refresh tokens or MFA
+4. Application container image (optional; current deploy path is Node + static SPA)

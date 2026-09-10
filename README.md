@@ -2,17 +2,46 @@
 
 Production-oriented operations portal for customers, products, inventory, sales challans, and CRM follow-ups.
 
-**Current status:** Phases 1–6 backend are in place (foundation, PostgreSQL, authentication, Customer CRM, Products & Inventory, Sales Challan APIs). The sales challan UI and dashboard analytics are **not** implemented yet.
+**Current status:** Phases 1–8 are complete (foundation through CRM follow-up operations). Phase 9 focuses on production hardening and deployment readiness.
+
+## Business problem
+
+Small and mid-size trading teams need one place to manage customers and follow-ups, keep product stock accurate, and issue sales challans without losing inventory integrity. This portal keeps CRM and stock/challan workflows on a shared authenticated backend with role-based access.
+
+## Features
+
+- JWT authentication (email/password + Google), email verification, password reset, RBAC
+- Customer CRM with search, filters, pagination, and follow-up history
+- CRM operations workspace (`/crm`) with queue filters and KPIs
+- Products with unique SKU and inventory movements (no negative stock)
+- Sales challans: draft → confirm (atomic stock deduction) or cancel draft
+- Premium responsive operations UI and shared design system
 
 ## Technology stack
 
 | Layer | Choice |
 | --- | --- |
 | Frontend | React, Vite, TypeScript, Tailwind CSS, React Router, Axios |
-| Backend | Node.js, TypeScript, Express |
+| Backend | Node.js, TypeScript, Express, Helmet |
 | Database | PostgreSQL + Prisma |
 | Auth | JWT, bcrypt, RBAC, Google Identity, SMTP email |
-| Deployment (later) | Frontend on Vercel, API on Render, PostgreSQL on Neon / Supabase / Render |
+| Deployment | Frontend static (Vercel/Netlify), API Node host, managed PostgreSQL |
+
+## Architecture
+
+- SPA talks to a versioned REST API under `/api`
+- Express layers: routes → controllers → services → repositories (Prisma)
+- Backend RBAC is authoritative; frontend navigation is UX only
+- Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+## Project structure
+
+```
+frontend/          React SPA
+backend/           Express API + Prisma
+docs/              Architecture, development, API, deployment
+docker-compose.yml Local PostgreSQL only
+```
 
 ## Local setup
 
@@ -59,6 +88,8 @@ Password for every seeded user: `DevLogin!2026`
 | `warehouse.dev@example.com` | WAREHOUSE |
 | `accounts.dev@example.com` | ACCOUNTS |
 
+`prisma db seed` refuses to run when `NODE_ENV=production` unless `ALLOW_PROD_SEED=true`.
+
 ## Commands
 
 ### Backend
@@ -68,10 +99,9 @@ Password for every seeded user: `DevLogin!2026`
 | `npm run dev` | Start the API with reload |
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled API |
+| `npm run start:deploy` | `prisma migrate deploy` then `npm start` |
 | `npm run typecheck` | Typecheck without emit |
-| `npm test` | Health, 404, database, authentication (including signup/Google/reset), customer CRM, product/inventory, and sales challan tests |
-| `npm run prisma:validate` | Validate `schema.prisma` |
-| `npm run prisma:generate` | Generate Prisma Client |
+| `npm test` | Health, database, auth, customers, products/inventory, challans |
 | `npm run prisma:migrate` | Create/apply development migrations |
 | `npm run prisma:migrate:deploy` | Apply migrations (CI/production) |
 | `npm run prisma:seed` | Load development seed data |
@@ -81,31 +111,28 @@ Password for every seeded user: `DevLogin!2026`
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Vite development server |
-| `npm run build` | Production build |
+| `npm run build` | Production build → `dist/` |
 | `npm run preview` | Preview the production build |
 | `npm run lint` | Oxlint |
+| `npm run typecheck` | Typecheck |
 
 ## Environment variables
 
-See `backend/.env.example` and `frontend/.env.example`.
+See `backend/.env.example`, `frontend/.env.example`, and the root `.env.example` index.
 
-Used now:
+**Backend (required in production):** `NODE_ENV`, `PORT`, `DATABASE_URL`, `JWT_SECRET` (≥32 chars, not the example), `JWT_EXPIRES_IN`, `FRONTEND_URL` (non-localhost absolute origin).
 
-- `PORT`, `NODE_ENV`, `FRONTEND_URL`, `DATABASE_URL`
-- `JWT_SECRET`, `JWT_EXPIRES_IN`
-- `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`
+**Backend (feature-gated):** `EMAIL_FROM`, `SMTP_*`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 
-Never commit real secrets. `JWT_SECRET` must be a unique value in every environment.
+**Frontend (build-time):** `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`.
 
-Signup, verification, and password-reset emails require SMTP. Google sign-in requires a Google OAuth client ID. If those are missing, the API returns a clear 503 instead of pretending the action succeeded.
+Never commit real secrets. Signup/verification/reset need SMTP; Google sign-in needs a Google OAuth client ID.
 
-## Authentication
+## Authentication / RBAC
 
-Public self-registration always creates a **SALES** user. The signup request cannot choose `ADMIN`, `WAREHOUSE`, or `ACCOUNTS`. Google-created accounts use the same default. Seeded staff accounts remain the way to obtain privileged roles in local development.
+Public self-registration always creates a **SALES** user. Google-created accounts use the same default. Seeded staff accounts remain the way to obtain privileged roles in local development.
 
-Password hashes use bcrypt (cost 10) and are never returned. Verification and reset tokens are stored as SHA-256 hashes, expire, and are single-use. Password login requires a verified email.
+Password hashes use bcrypt and are never returned. Verification and reset tokens are stored as SHA-256 hashes, expire, and are single-use. Password login requires a verified email. Password reset increments `tokenVersion` so older JWTs stop working.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -124,68 +151,84 @@ Authenticated requests send:
 Authorization: Bearer <token>
 ```
 
-Roles: `ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`. Reusable `authorizeRoles(...)` middleware returns 401 when unauthenticated and 403 when the role is not allowed. Frontend navigation can read the role; backend RBAC remains authoritative.
+Roles: `ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`.
+
+| Area | ADMIN | SALES | WAREHOUSE | ACCOUNTS |
+| --- | --- | --- | --- | --- |
+| Customers / CRM | yes | yes | no | no |
+| Products / inventory view | yes | yes | yes | yes |
+| Products / stock mutate | yes | no | yes | no |
+| Challans view | yes | yes | yes | yes |
+| Challans mutate | yes | yes | no | no |
 
 ## Customer CRM
 
-Customer records are available to **ADMIN** and **SALES**. Warehouse and Accounts receive 403 from the API. Navigation hiding is UX only.
-
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/customers` | Paginated list with `search`, `status`, `customerType`, `followUp`, `sortBy`, `sortOrder`, `page`, `pageSize` |
-| GET | `/api/customers/:id` | Customer detail and recent follow-up history |
-| POST | `/api/customers` | Create customer |
+| GET | `/api/customers` | Paginated list with filters including `followUp` |
+| GET | `/api/customers/:id` | Detail and recent follow-up history |
+| POST | `/api/customers` | Create |
 | PATCH | `/api/customers/:id` | Partial update |
-| GET | `/api/customers/:id/follow-ups` | Follow-up timeline |
-| POST | `/api/customers/:id/follow-ups` | Append a follow-up (`createdBy` is the authenticated user) |
+| GET | `/api/customers/:id/follow-ups` | Timeline |
+| POST | `/api/customers/:id/follow-ups` | Append follow-up |
 
-There is no customer DELETE. Historical records are preserved.
-
-Frontend routes: `/customers`, `/customers/:id`.
+Frontend: `/customers`, `/customers/:id`, `/crm`. No customer DELETE.
 
 ## Products and inventory
 
-All authenticated roles may view products and inventory. **ADMIN** and **WAREHOUSE** may create/edit products and record stock movements. **SALES** and **ACCOUNTS** are view-only. Navigation hiding is UX only.
-
-Stock cannot be edited on the product form. OUT movements that would go below zero are rejected with `409 INSUFFICIENT_STOCK` and neither stock nor history is changed.
-
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/products` | Paginated list with `search`, `category`, `stockStatus`, `sortBy`, `sortOrder`, `page`, `pageSize` |
-| GET | `/api/products/:id` | Product detail, stock status, and recent movements |
-| POST | `/api/products` | Create product (optional opening IN movement when initial stock > 0) |
-| PATCH | `/api/products/:id` | Metadata update; `currentStock` is rejected |
-| GET | `/api/inventory` | Inventory-oriented list plus healthy/low/critical summary |
-| GET | `/api/inventory/:productId/movements` | Paginated movement history |
-| POST | `/api/inventory/:productId/movements` | Record IN/OUT (`createdBy` is the authenticated user) |
+| GET | `/api/products` | Paginated list |
+| GET | `/api/products/:id` | Detail + recent movements |
+| POST | `/api/products` | Create (opening stock allowed) |
+| PATCH | `/api/products/:id` | Metadata only; `currentStock` rejected |
+| GET | `/api/inventory` | Inventory list + summary |
+| GET | `/api/inventory/:productId/movements` | Movement history |
+| POST | `/api/inventory/:productId/movements` | IN/OUT |
 
-Frontend routes: `/products`, `/products/:id`, `/inventory`. There is no movement DELETE.
+Frontend: `/products`, `/products/:id`, `/inventory`. No movement DELETE.
 
 ## Sales challans
 
-All authenticated roles may view challans. **ADMIN** and **SALES** may create and edit drafts, confirm, and cancel drafts. **WAREHOUSE** and **ACCOUNTS** are view-only. Navigation hiding is UX only.
-
-Create is always `DRAFT` and does not change stock. Confirmation deducts stock atomically, writes `OUT` movements, and sets `CONFIRMED`. Confirmed challans cannot be cancelled (no silent stock restore). There is no challan DELETE.
-
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/challans` | Paginated list with `search`, `status`, `customerId`, `sortBy`, `sortOrder`, `page`, `pageSize` |
-| GET | `/api/challans/:id` | Challan detail with snapshot line items |
-| POST | `/api/challans` | Create a draft (`createdBy` is the authenticated user) |
-| PATCH | `/api/challans/:id` | Edit a draft customer/items; snapshots refresh from current products |
-| POST | `/api/challans/:id/confirm` | Confirm: lock, validate stock, deduct, write OUT movements |
-| POST | `/api/challans/:id/cancel` | Cancel a draft only |
+| GET | `/api/challans` | Paginated list |
+| GET | `/api/challans/:id` | Detail with snapshots |
+| POST | `/api/challans` | Create draft |
+| PATCH | `/api/challans/:id` | Edit draft |
+| POST | `/api/challans/:id/confirm` | Confirm + atomic stock deduction |
+| POST | `/api/challans/:id/cancel` | Cancel draft only |
 
-Frontend routes: `/challans`, `/challans/new`, `/challans/:id`. Create and edit are available to Admin and Sales. Warehouse and Accounts can view.
+Frontend: `/challans`, `/challans/new`, `/challans/:id`. No challan DELETE; confirmed challans cannot be cancelled.
+
+## Health
+
+`GET /api/health` returns `200` when the database is connected and `503` when it is not. Responses never include credentials.
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Development](docs/DEVELOPMENT.md)
+- [API reference](docs/API.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Postman collection](docs/postman/Mini-ERP-CRM.postman_collection.json)
 
-## Current limitations
+## Docker
 
-- Dashboard does not yet show operational analytics
-- Access tokens are stored in `localStorage` (XSS-sensitive; see architecture notes). Logout deletes the browser copy; password reset increments `tokenVersion` so older JWTs stop working.
-- SMTP and Google credentials are environment-specific and are not included in the repo
-- There is no MFA and no refresh-token rotation
+`docker compose up -d postgres` starts local PostgreSQL 16 for development. There is no application Dockerfile; deploy the API as a Node service and the frontend as static assets. See [Deployment](docs/DEPLOYMENT.md).
+
+## Deployment (summary)
+
+1. Provision PostgreSQL and set `DATABASE_URL`.
+2. Deploy backend with production env vars; run `prisma migrate deploy` then `npm start` (or `npm run start:deploy`).
+3. Build frontend with `VITE_API_BASE_URL` pointing at the deployed API; enable SPA fallback (`vercel.json` / Netlify redirects).
+4. Set backend `FRONTEND_URL` to the SPA origin.
+
+## Known limitations / production assumptions
+
+- Access tokens are stored in `localStorage` (XSS-sensitive). Harden CSP on the SPA host.
+- Auth rate limits are in-memory per process (not shared across multiple API instances).
+- No MFA and no refresh-token rotation.
+- SMTP and Google credentials are environment-specific and are not in the repo.
+- Seed demo passwords must never be used as production accounts.
+- Dashboard shows operational entry points and CRM-related signals; it is not a full BI suite.

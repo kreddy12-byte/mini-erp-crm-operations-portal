@@ -9,6 +9,7 @@ const databaseUrl = process.env.DATABASE_URL ?? '';
 const jwtSecret = process.env.JWT_SECRET ?? '';
 const jwtExpiresIn = process.env.JWT_EXPIRES_IN ?? '1d';
 const EXAMPLE_JWT_SECRET = 'replace-with-a-long-random-secret';
+const rawFrontendUrl = (process.env.FRONTEND_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 
 if (nodeEnv === 'production' && !databaseUrl) {
   throw new Error('DATABASE_URL is required in production');
@@ -29,6 +30,25 @@ if (!jwtExpiresIn.trim()) {
   throw new Error('JWT_EXPIRES_IN is required');
 }
 
+// Production CORS and email action links must not silently fall back to localhost.
+if (nodeEnv === 'production') {
+  if (!process.env.FRONTEND_URL?.trim()) {
+    throw new Error('FRONTEND_URL is required in production');
+  }
+  let frontendOrigin: URL;
+  try {
+    frontendOrigin = new URL(rawFrontendUrl);
+  } catch {
+    throw new Error('FRONTEND_URL must be a valid absolute URL in production');
+  }
+  if (!['http:', 'https:'].includes(frontendOrigin.protocol)) {
+    throw new Error('FRONTEND_URL must use http or https in production');
+  }
+  if (frontendOrigin.hostname === 'localhost' || frontendOrigin.hostname === '127.0.0.1') {
+    throw new Error('FRONTEND_URL must not point at localhost in production');
+  }
+}
+
 const smtpPort = Number.parseInt(process.env.SMTP_PORT ?? '587', 10);
 
 export const env = {
@@ -36,7 +56,7 @@ export const env = {
   NODE_ENV: nodeEnv,
   isProduction: nodeEnv === 'production',
   isDevelopment: nodeEnv === 'development',
-  FRONTEND_URL: (process.env.FRONTEND_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
+  FRONTEND_URL: rawFrontendUrl,
   SERVICE_NAME: 'mini-erp-crm-api',
   DATABASE_URL: databaseUrl,
   JWT_SECRET: jwtSecret,

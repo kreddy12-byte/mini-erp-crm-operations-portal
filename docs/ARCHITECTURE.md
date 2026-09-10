@@ -200,6 +200,8 @@ This is a practical case-study control, not a distributed rate limiter.
 
 The Prisma `Customer` / `CustomerFollowUp` models from Phase 2 are reused without a new migration. Sales challans for a customer are listed through `GET /api/challans?customerId=`.
 
+The CRM operations workspace (`/crm`) is a frontend composition over the existing customer list APIs (filters such as `followUp=overdue|today|upcoming|none`, KPIs via total counts). No dedicated CRM backend routes were added.
+
 ## Products and inventory
 
 The Phase 2 `Product` and `StockMovement` models are reused without a schema change. `Product.minStock` is the minimum stock alert quantity (the case-study name `minStockAlertQty`).
@@ -246,6 +248,6 @@ RBAC:
 Frontend routes: `/challans`, `/challans/new`, `/challans/:id`. Navigation hiding is UX only. Warehouse and Accounts can view but cannot create, edit, confirm, or cancel.
 
 ## What is not implemented yet
-- Dashboard analytics
-- The aggregated `/crm` follow-up workspace
 - Refresh tokens or MFA
+- Shared/distributed auth rate limiting across multiple API instances
+- Full BI / dashboard analytics suite (operational entry points and CRM KPIs exist)
