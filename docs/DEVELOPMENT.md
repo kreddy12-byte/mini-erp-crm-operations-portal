@@ -12,6 +12,8 @@ Preferred path if Docker is installed:
 docker compose up -d postgres
 ```
 
+For the full production-like stack (API + nginx SPA + Postgres), see [DEPLOYMENT.md](./DEPLOYMENT.md#docker-compose-full-local-stack).
+
 `docker-compose.yml` creates database `mini_erp_crm` with user `postgres` / password `postgres` on port 5432.
 
 If you already have PostgreSQL 16 locally, create the database yourself and set `DATABASE_URL` in `backend/.env`. Do not commit that file.
@@ -80,8 +82,9 @@ Open http://localhost:5173.
 | `GOOGLE_CLIENT_SECRET` | backend | Optional; reserved for the Google Cloud OAuth client |
 | `VITE_GOOGLE_CLIENT_ID` | frontend | Same OAuth client ID as `GOOGLE_CLIENT_ID` |
 | `ALLOW_PROD_SEED` | backend | Production only; must stay unset except intentional bootstrap |
+| `ALLOW_LOCALHOST_FRONTEND_URL` | backend | Local Docker Compose only; allows localhost `FRONTEND_URL` in production |
 
-In production, `FRONTEND_URL` is required and must not be localhost. `JWT_SECRET` must be unique and at least 32 characters.
+In production, `FRONTEND_URL` is required. Public deployments must not point it at localhost unless you are intentionally using local Compose (`ALLOW_LOCALHOST_FRONTEND_URL=true`). `JWT_SECRET` must be unique and at least 32 characters.
 
 `DATABASE_URL` and `JWT_SECRET` are required. In production `JWT_SECRET` must be a unique value of at least 32 characters. Never hardcode credentials.
 

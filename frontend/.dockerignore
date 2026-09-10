@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+.env
+.env.*
+!.env.example
+coverage
+*.log
+logs
+.git
+.gitignore
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.md
+.oxlintrc*

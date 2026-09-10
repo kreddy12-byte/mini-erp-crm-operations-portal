@@ -1,5 +1,9 @@
-# Local PostgreSQL for development.
-# Not a production deployment. The API reads DATABASE_URL, not this file directly.
+# Full local stack: postgres + API + SPA (nginx).
+# Copy .env.docker.example → .env before first run. Do not commit .env.
+#
+# Networking:
+# - Backend → Postgres uses Docker DNS: postgres:5432
+# - Browser → Frontend / API uses published localhost ports (not Docker service names)
 
 services:
   postgres:
@@ -7,18 +11,69 @@ services:
     container_name: mini-erp-crm-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mini_erp_crm
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-mini_erp_crm}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      # Published for host-side Prisma/tools. Prefer the Docker network hostname from containers.
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mini_erp_crm"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: mini-erp-crm-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Browser origin of the SPA (published frontend port), not the Docker service name.
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      # Required when FRONTEND_URL is localhost under NODE_ENV=production (local Compose only).
+      ALLOW_LOCALHOST_FRONTEND_URL: ${ALLOW_LOCALHOST_FRONTEND_URL:-true}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-mini_erp_crm}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env — copy from .env.docker.example}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Browser calls the published backend port — never http://backend:4000
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4000/api}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    container_name: mini-erp-crm-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
 
 volumes:
   postgres_data:

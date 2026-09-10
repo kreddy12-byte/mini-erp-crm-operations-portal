@@ -45,7 +45,11 @@ if (nodeEnv === 'production') {
     throw new Error('FRONTEND_URL must use http or https in production');
   }
   if (frontendOrigin.hostname === 'localhost' || frontendOrigin.hostname === '127.0.0.1') {
-    throw new Error('FRONTEND_URL must not point at localhost in production');
+    // Local Docker Compose uses browser origins like http://localhost:8080.
+    // Public deployments must leave ALLOW_LOCALHOST_FRONTEND_URL unset.
+    if (process.env.ALLOW_LOCALHOST_FRONTEND_URL !== 'true') {
+      throw new Error('FRONTEND_URL must not point at localhost in production');
+    }
   }
 }
 

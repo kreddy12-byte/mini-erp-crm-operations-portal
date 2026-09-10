@@ -37,10 +37,11 @@ Small and mid-size trading teams need one place to manage customers and follow-u
 ## Project structure
 
 ```
-frontend/          React SPA
-backend/           Express API + Prisma
+frontend/          React SPA (+ Dockerfile / nginx for Compose)
+backend/           Express API + Prisma (+ Dockerfile)
 docs/              Architecture, development, API, deployment
-docker-compose.yml Local PostgreSQL only
+docker-compose.yml postgres + backend + frontend
+.env.docker.example  Template for Compose `.env` (copy, do not commit `.env`)
 ```
 
 ## Local setup
@@ -215,7 +216,27 @@ Frontend: `/challans`, `/challans/new`, `/challans/:id`. No challan DELETE; conf
 
 ## Docker
 
-`docker compose up -d postgres` starts local PostgreSQL 16 for development. There is no application Dockerfile; deploy the API as a Node service and the frontend as static assets. See [Deployment](docs/DEPLOYMENT.md).
+Full local stack (PostgreSQL + API + nginx SPA):
+
+```bash
+copy .env.docker.example .env
+docker compose build
+docker compose up -d
+```
+
+- Web: http://localhost:8080
+- API: http://localhost:4000
+- Health: http://localhost:4000/api/health
+
+Backend starts with `prisma migrate deploy` then the compiled server (no automatic seed). Browser API calls use `http://localhost:4000/api`, not the Docker hostname `backend`.
+
+If host PostgreSQL already uses port **5432**, set `POSTGRES_PORT=5433` in `.env` before `up`. Containers still use `postgres:5432` internally. For a fresh Compose database, seed intentionally from the host against `localhost:<POSTGRES_PORT>` — never as part of production deploy. Details: [Deployment](docs/DEPLOYMENT.md).
+
+Postgres-only (for host `npm run dev`):
+
+```bash
+docker compose up -d postgres
+```
 
 ## Deployment (summary)
 

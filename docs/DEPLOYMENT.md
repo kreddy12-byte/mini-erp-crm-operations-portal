@@ -1,14 +1,13 @@
 # Deployment
 
-This guide covers production-like deployment for the current architecture: static SPA + Express API + managed PostgreSQL.
+This guide covers production-like deployment for the current architecture: static SPA + Express API + managed PostgreSQL, plus the local Docker Compose stack.
 
 ## Production assumptions
 
-- Frontend is a static Vite build hosted on Vercel, Netlify, or equivalent.
-- Backend is a Node 20+ process (Render, Railway, Fly.io, a VM, etc.).
-- PostgreSQL is managed (Neon, Supabase, Render Postgres, etc.).
+- Frontend is a static Vite build (Vercel, Netlify, or the Compose nginx image).
+- Backend is a Node 20+ process (Render, Railway, Fly.io, a VM, or the Compose API image).
+- PostgreSQL is managed (Neon, Supabase, Render Postgres) or the Compose `postgres` service.
 - Secrets are supplied only through environment variables.
-- `docker-compose.yml` is for **local PostgreSQL only**, not a production stack.
 - Seed data (`DevLogin!2026`) is for local/demo only. Production seeding is blocked unless `ALLOW_PROD_SEED=true`.
 
 ## Backend
@@ -40,7 +39,7 @@ npm run start:deploy
 | `DATABASE_URL` | Required; app exits if missing or unreachable at startup |
 | `JWT_SECRET` | Required; unique; at least 32 characters; not the example placeholder |
 | `JWT_EXPIRES_IN` | e.g. `1d` |
-| `FRONTEND_URL` | Required; absolute `http(s)` origin of the SPA; **must not** be localhost |
+| `FRONTEND_URL` | Required; absolute `http(s)` origin of the SPA |
 
 ### Optional / feature-gated
 
@@ -50,6 +49,7 @@ npm run start:deploy
 | `GOOGLE_CLIENT_ID` | Required for Google sign-in |
 | `GOOGLE_CLIENT_SECRET` | Reserved for the Google Cloud client; not used by ID-token verify path |
 | `ALLOW_PROD_SEED` | Must stay unset/false in real deployments |
+| `ALLOW_LOCALHOST_FRONTEND_URL` | Local Docker Compose only; allows `FRONTEND_URL` on localhost under `NODE_ENV=production`. Never set on a public deployment. |
 
 ### CORS and email links
 
@@ -101,6 +101,7 @@ Deep links (`/customers/:id`, `/crm`, etc.) require the host to serve `index.htm
 
 - Vercel: `frontend/vercel.json`
 - Netlify: `frontend/netlify.toml` and `frontend/public/_redirects`
+- Docker nginx: `frontend/nginx.conf` (`try_files` → `/index.html`)
 
 ### Platform tips
 
@@ -119,7 +120,100 @@ Deep links (`/customers/:id`, `/crm`, etc.) require the host to serve `index.htm
 4. Attach managed Postgres `DATABASE_URL`
 5. Set all required env vars above
 
-## Local production-like checks
+## Docker Compose (full local stack)
+
+`docker-compose.yml` runs **postgres**, **backend**, and **frontend** together for a production-like local environment.
+
+### Prerequisites
+
+- Docker Desktop (or equivalent) with Compose v2
+- Copy environment file (do not commit the real `.env`):
+
+```bash
+copy .env.docker.example .env
+```
+
+Edit `.env` so `JWT_SECRET` is unique and at least 32 characters (the example file already uses a local-only placeholder that satisfies length checks).
+
+If a host PostgreSQL instance already listens on **5432**, change `POSTGRES_PORT` in `.env` to a free host port such as **5433**. That mapping only affects host access (`localhost:<POSTGRES_PORT>`). Inside Compose, the backend still connects to `postgres:5432`.
+
+### Networking (important)
+
+| Path | Hostname to use |
+| --- | --- |
+| Backend container → PostgreSQL | `postgres:5432` (Docker DNS) |
+| Host tools → Compose PostgreSQL | `localhost:<POSTGRES_PORT>` (default `5432`; use `5433` if host Postgres already owns 5432) |
+| Browser → frontend | `http://localhost:8080` (published port) |
+| Browser → backend API | `http://localhost:4000/api` (published port) |
+| Production SPA / API | Your real public URLs — not Docker service names |
+
+The browser runs on the host. Never set `VITE_API_BASE_URL` to `http://backend:4000` — that hostname only resolves inside the Compose network.
+
+`FRONTEND_URL` must match the origin the browser uses (`http://localhost:8080` for Compose). Local Compose sets `ALLOW_LOCALHOST_FRONTEND_URL=true` so Phase 9 production checks still allow that localhost origin.
+
+### Start
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Backend startup runs `npm run start:deploy` (`prisma migrate deploy` then the compiled server). It does **not** run seed, `migrate reset`, or `db push`.
+
+### Verify
+
+```bash
+docker compose ps
+curl http://localhost:4000/api/health
+# Open http://localhost:8080
+```
+
+SPA deep links such as `/login`, `/dashboard`, `/customers`, `/crm` are served by nginx fallback.
+
+### Logs and stop
+
+```bash
+docker compose logs -f backend
+docker compose logs --tail=200 frontend
+docker compose logs --tail=200 postgres
+
+docker compose down
+```
+
+`docker compose down` keeps the named volume `postgres_data`. Data persists across normal restarts.
+
+### Optional local seed (intentional only)
+
+Compose does **not** seed automatically, and production/public databases must **not** be seeded as part of normal deploy.
+
+For a **fresh local Compose database** only, seed from the host against the **published** Postgres port (`POSTGRES_PORT` in `.env`):
+
+```bash
+cd backend
+# PowerShell — use 5432 by default, or 5433 if you remapped the host port
+$env:DATABASE_URL="postgresql://postgres:postgres@localhost:5433/mini_erp_crm?schema=public"
+$env:NODE_ENV="development"
+npx prisma db seed
+```
+
+Replace `5433` with your `POSTGRES_PORT` value. This uses the Phase 9 seed guard (development is allowed; production requires an explicit `ALLOW_PROD_SEED=true` override and must not be used casually). Demo accounts are documented in the README.
+
+### Destructive reset (not part of normal flow)
+
+```bash
+# DESTRUCTIVE: deletes the Postgres volume and all local Docker DB data
+docker compose down -v
+```
+
+### Postgres-only mode
+
+You can still run just the database for host-side `npm run dev`:
+
+```bash
+docker compose up -d postgres
+```
+
+## Local production-like checks (without Docker images)
 
 ```bash
 # Backend
@@ -135,13 +229,10 @@ npm run lint
 npm run build
 ```
 
-## Docker
-
-`docker compose up -d postgres` starts local PostgreSQL 16 only. There is no application Dockerfile by design: deploy the API as a Node service and the frontend as static assets.
-
 ## Known production limitations
 
 - Access tokens live in `localStorage` (XSS-sensitive). Prefer a hardened CSP on the SPA host.
 - Auth rate limits are in-memory (per process); multi-instance deployments do not share counters.
 - No MFA / refresh-token rotation.
 - Demo seed accounts must not be used in production.
+- Compose `ALLOW_LOCALHOST_FRONTEND_URL` is for local stacks only.
