@@ -18,6 +18,5 @@ export interface LoginResult {
   user: AuthenticatedUser;
 }
 
-export interface SignupResult {
-  user: AuthenticatedUser;
-}
+/** Signup returns the same session payload as login. */
+export type SignupResult = LoginResult;

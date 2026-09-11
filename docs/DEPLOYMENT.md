@@ -45,7 +45,7 @@ npm run start:deploy
 
 | Variable | Notes |
 | --- | --- |
-| `EMAIL_FROM`, `SMTP_*` | Required for signup verification and password reset emails |
+| `EMAIL_FROM`, `SMTP_*` | Required for forgot/reset password and optional verification/resend emails — **not** required for signup or password login |
 | `GOOGLE_CLIENT_ID` | Required for Google sign-in |
 | `GOOGLE_CLIENT_SECRET` | Reserved for the Google Cloud client; not used by ID-token verify path |
 | `ALLOW_PROD_SEED` | Must stay unset/false in real deployments |

@@ -30,7 +30,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 export async function signup(req: Request, res: Response): Promise<void> {
   const input = parseSignupBody(req.body);
   const data = await signupUser(input);
-  sendSuccess(res, data, 'Check your email to verify your account.', 201);
+  sendSuccess(res, data, 'Account created', 201);
 }
 
 export async function verifyEmailAddress(req: Request, res: Response): Promise<void> {

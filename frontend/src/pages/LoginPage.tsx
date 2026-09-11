@@ -20,7 +20,6 @@ export function LoginPage() {
   const [emailError, setEmailError] = useState<string | undefined>();
   const [passwordError, setPasswordError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | undefined>();
-  const [unverified, setUnverified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -33,7 +32,6 @@ export function LoginPage() {
     setEmailError(nextEmailError);
     setPasswordError(nextPasswordError);
     setFormError(undefined);
-    setUnverified(false);
 
     if (nextEmailError || nextPasswordError) {
       return;
@@ -44,7 +42,6 @@ export function LoginPage() {
       await login(email.trim(), password);
     } catch (reason: unknown) {
       const error = reason instanceof ApiClientError ? reason : null;
-      setUnverified(error?.code === 'EMAIL_NOT_VERIFIED');
       setFormError(error?.message ?? 'Unable to sign in. Please try again.');
     } finally {
       setSubmitting(false);
@@ -90,17 +87,6 @@ export function LoginPage() {
           {formError ? (
             <p className="text-sm text-danger" role="alert">
               {formError}
-              {unverified ? (
-                <>
-                  {' '}
-                  <Link
-                    to={`${paths.verifyEmail}?email=${encodeURIComponent(email.trim().toLowerCase())}`}
-                    className="font-medium text-primary underline"
-                  >
-                    Resend verification
-                  </Link>
-                </>
-              ) : null}
             </p>
           ) : null}
 

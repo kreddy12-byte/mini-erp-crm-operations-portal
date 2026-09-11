@@ -30,12 +30,12 @@ Authorization: Bearer <accessToken>
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| POST | `/auth/signup` | none | Always creates `SALES`; sends verification email |
-| POST | `/auth/login` | none | Verified email + password |
+| POST | `/auth/signup` | none | Always creates `SALES`; returns session JWT immediately (SMTP not required) |
+| POST | `/auth/login` | none | Email + password; does not require `emailVerifiedAt` |
 | POST | `/auth/google` | none | Server-side Google ID token verify |
-| POST | `/auth/verify-email` | none | Consumes verification token; returns session |
-| POST | `/auth/resend-verification` | none | Generic response |
-| POST | `/auth/forgot-password` | none | Generic response |
+| POST | `/auth/verify-email` | none | Optional; consumes verification token; returns session |
+| POST | `/auth/resend-verification` | none | Optional; requires SMTP; generic response |
+| POST | `/auth/forgot-password` | none | Requires SMTP; generic response |
 | POST | `/auth/reset-password` | none | Bumps `tokenVersion` |
 | GET | `/auth/me` | JWT | Current user (no password hash) |
 

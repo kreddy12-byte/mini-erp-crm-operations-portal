@@ -73,8 +73,8 @@ Open http://localhost:5173.
 | `VITE_API_BASE_URL` | frontend Axios | Used |
 | `JWT_SECRET` | backend | Used (signing/verifying access tokens) |
 | `JWT_EXPIRES_IN` | backend | Used (for example `1d`) |
-| `EMAIL_FROM` | backend | Required for verification/reset email |
-| `SMTP_HOST` | backend | Required for verification/reset email |
+| `EMAIL_FROM` | backend | Required for optional verification / password-reset email |
+| `SMTP_HOST` | backend | Required for optional verification / password-reset email |
 | `SMTP_PORT` | backend | Used (default `587`) |
 | `SMTP_USER` / `SMTP_PASSWORD` | backend | Optional SMTP auth |
 | `SMTP_SECURE` | backend | `true` for TLS on connect (typically port 465) |
@@ -90,7 +90,7 @@ In production, `FRONTEND_URL` is required. Public deployments must not point it 
 
 ### Local email (Mailpit)
 
-Signup and password reset attempt real SMTP delivery. They do **not** pretend to succeed when SMTP is missing.
+Signup and password login do **not** require SMTP. Forgot-password, optional verification/resend, and reset emails do. Those flows do **not** pretend to succeed when SMTP is missing.
 
 A local inbox that works without cloud credentials:
 
@@ -156,14 +156,14 @@ Seeded users share the **development/test** password `DevLogin!2026`. Hashes are
 
 ## Authentication
 
-Public self-registration always assigns **SALES**. Role is not accepted from the client. Google-created accounts use the same default. Seeded users remain verified so local password login keeps working.
+Public self-registration always assigns **SALES**. Role is not accepted from the client. Google-created accounts use the same default. Seeded users remain available for local privileged-role testing. JWT authentication and RBAC are unchanged. No database migration was required when signup stopped requiring email verification (`emailVerifiedAt` stays nullable).
 
-- `POST /api/auth/signup` — public. Creates an unverified SALES user and emails a verification link. Does not return a JWT. Duplicate email → `409 DUPLICATE_EMAIL`. Missing SMTP → `503 EMAIL_NOT_CONFIGURED`.
-- `POST /api/auth/login` — public. Returns `{ token, user }` for verified accounts. Failed login always uses a generic invalid-credentials message. Unverified users receive `403 EMAIL_NOT_VERIFIED`.
+- `POST /api/auth/signup` — public. Creates a SALES user, returns `{ token, user }` immediately (same session shape as login). Does **not** require SMTP or email verification. Duplicate email → `409 DUPLICATE_EMAIL`.
+- `POST /api/auth/login` — public. Returns `{ token, user }` for valid credentials. Does **not** require `emailVerifiedAt`. Failed login always uses a generic invalid-credentials message.
 - `POST /api/auth/google` — public. Body `{ idToken }`. Backend verifies the token with Google. New users are SALES.
-- `POST /api/auth/verify-email` — public. Body `{ token }`. Marks the email verified and returns a session JWT.
-- `POST /api/auth/resend-verification` — public. Generic success message.
-- `POST /api/auth/forgot-password` — public. Generic success message.
+- `POST /api/auth/verify-email` — public, **optional**. Body `{ token }`. Marks the email verified and returns a session JWT when SMTP-backed verification was used.
+- `POST /api/auth/resend-verification` — public, **optional**. Requires SMTP. Generic success message.
+- `POST /api/auth/forgot-password` — public. Requires SMTP. Generic success message.
 - `POST /api/auth/reset-password` — public. Body `{ token, password, confirmPassword }`. Invalidates unused reset tokens and increments `tokenVersion`.
 - `GET /api/auth/me` — requires `Authorization: Bearer <JWT>`.
 - Reusable `authenticate` middleware verifies the Bearer token, checks `tokenVersion`, and attaches `req.auth`.

@@ -10,7 +10,7 @@ Small and mid-size trading teams need one place to manage customers and follow-u
 
 ## Features
 
-- JWT authentication (email/password + Google), email verification, password reset, RBAC
+- JWT authentication (email/password + Google), optional email verification, password reset, RBAC
 - Customer CRM with search, filters, pagination, and follow-up history
 - CRM operations workspace (`/crm`) with queue filters and KPIs
 - Products with unique SKU and inventory movements (no negative stock)
@@ -127,22 +127,22 @@ See `backend/.env.example`, `frontend/.env.example`, and the root `.env.example`
 
 **Frontend (build-time):** `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`.
 
-Never commit real secrets. Signup/verification/reset need SMTP; Google sign-in needs a Google OAuth client ID.
+Never commit real secrets. Signup and password login do **not** require SMTP. Forgot/reset password and optional verification/resend need SMTP. Google sign-in needs a Google OAuth client ID.
 
 ## Authentication / RBAC
 
-Public self-registration always creates a **SALES** user. Google-created accounts use the same default. Seeded staff accounts remain the way to obtain privileged roles in local development.
+Public self-registration always creates a **SALES** user and immediately returns a JWT session (same shape as login). The SPA stores that token and treats the user as signed in. Google-created accounts use the same default SALES role. Seeded staff accounts remain the way to obtain privileged roles in local development. JWT issuance and RBAC are unchanged; no database migration was required for dropping mandatory email verification.
 
-Password hashes use bcrypt and are never returned. Verification and reset tokens are stored as SHA-256 hashes, expire, and are single-use. Password login requires a verified email. Password reset increments `tokenVersion` so older JWTs stop working.
+Password hashes use bcrypt and are never returned. Optional verification and reset tokens are stored as SHA-256 hashes, expire, and are single-use. Password login does **not** require `emailVerifiedAt`. Password reset increments `tokenVersion` so older JWTs stop working.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| POST | `/api/auth/signup` | Create a SALES account and send a verification email |
-| POST | `/api/auth/login` | Email/password login (verified accounts only) |
+| POST | `/api/auth/signup` | Create a SALES account and return a session JWT (SMTP not required) |
+| POST | `/api/auth/login` | Email/password login (verification not required) |
 | POST | `/api/auth/google` | Google Identity Services ID token, verified server-side |
-| POST | `/api/auth/verify-email` | Consume a verification token and issue a session |
-| POST | `/api/auth/resend-verification` | Resend a verification email (generic response) |
-| POST | `/api/auth/forgot-password` | Send a reset email (generic response) |
+| POST | `/api/auth/verify-email` | Optional; consume a verification token and issue a session |
+| POST | `/api/auth/resend-verification` | Optional; resend a verification email (requires SMTP; generic response) |
+| POST | `/api/auth/forgot-password` | Send a reset email (requires SMTP; generic response) |
 | POST | `/api/auth/reset-password` | Set a new password and bump `tokenVersion` |
 | GET | `/api/auth/me` | Current user; requires `Authorization: Bearer <JWT>` |
 

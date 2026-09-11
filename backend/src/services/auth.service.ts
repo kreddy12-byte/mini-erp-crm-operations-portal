@@ -131,18 +131,10 @@ export async function loginUser(email: string, password: string): Promise<LoginR
     throw INVALID_CREDENTIALS;
   }
 
-  // 4. REQUIRE VERIFIED EMAIL for password login.
-  if (!user.emailVerifiedAt) {
-    throw new AppError(
-      403,
-      ErrorCodes.EMAIL_NOT_VERIFIED,
-      'Verify your email address before signing in.',
-    );
-  }
-
+  // Email verification is optional; password login does not require emailVerifiedAt.
   resetRateLimit(`login-fail:${email}`);
 
-  // 5. CREATE JWT
+  // 4. CREATE JWT
   return issueSession(user);
 }
 
@@ -159,7 +151,6 @@ export async function signupUser(input: {
     'Too many signup attempts. Try again in a few minutes.',
   );
   hitRateLimit(`signup:${input.email}`, EMAIL_ACTION_WINDOW_MS);
-  assertEmailDeliveryConfigured();
 
   const existing = await findUserByEmail(input.email);
   if (existing) {
@@ -167,6 +158,7 @@ export async function signupUser(input: {
   }
 
   // Public self-registration is always SALES. Role is never taken from the request.
+  // SMTP / email verification is optional and must not block account creation.
   try {
     const user = await createUser({
       name: input.name,
@@ -175,16 +167,7 @@ export async function signupUser(input: {
       role: UserRole.SALES,
     });
 
-    await issueAndEmailToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      type: AuthTokenType.EMAIL_VERIFICATION,
-      ttlMs: env.AUTH_VERIFY_TTL_MS,
-      path: '/verify-email',
-    });
-
-    return { user: toPublicUser(user) };
+    return issueSession(user);
   } catch (error) {
     if (duplicateEmailError(error)) {
       throw new AppError(409, ErrorCodes.DUPLICATE_EMAIL, 'An account with this email already exists.');

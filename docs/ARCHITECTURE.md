@@ -157,13 +157,15 @@ Public `POST /api/auth/signup` ignores any `role` field on the request. New self
 
 Password rules: at least 10 characters, at least one letter and one number, confirmation must match. Email is trimmed and lowercased.
 
-Signup does not return a JWT. The user must verify email first.
+Successful signup creates the account, issues a JWT immediately (same session shape as login), and the SPA establishes an authenticated session and routes to the dashboard. Email verification is **not** required for signup or password login. No Prisma migration was required for this behavior (`emailVerifiedAt` remains nullable).
 
 ### Email verification and password reset
 
+Email verification is **optional**. Existing `/auth/verify-email` and `/auth/resend-verification` endpoints remain available when SMTP is configured; they are not part of the normal signup/login path.
+
 `AuthToken` rows store SHA-256 hashes of opaque tokens (`randomBytes(32)` as base64url). Raw tokens appear only in emailed links built from `FRONTEND_URL`. Tokens expire (24h verification, 1h reset), are single-use, and unused tokens of the same type are invalidated when a new one is issued.
 
-`EmailService` (`backend/src/services/email.service.ts`) is the delivery abstraction. Authentication code does not contain SMTP details. If `SMTP_HOST` or `EMAIL_FROM` is missing, signup/resend/forgot-password return `503 EMAIL_NOT_CONFIGURED` instead of claiming that mail was sent.
+`EmailService` (`backend/src/services/email.service.ts`) is the delivery abstraction. Authentication code does not contain SMTP details. SMTP is **not** required for signup or password login. If `SMTP_HOST` or `EMAIL_FROM` is missing, **forgot-password / resend-verification** (and other email sends) return `503 EMAIL_NOT_CONFIGURED` instead of claiming that mail was sent.
 
 Forgot-password and resend-verification use the same generic success message whether or not the email exists, after email delivery is confirmed to be configured.
 

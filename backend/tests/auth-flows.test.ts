@@ -159,8 +159,20 @@ test('signup, verification, password reset, and Google identity follow productio
   assert.equal(created.status, 201);
   assert.equal(createdBody.data.user?.email, `priya.${suffix}@example.com`);
   assert.equal(createdBody.data.user?.role, 'SALES');
-  assert.equal(createdBody.data.token, undefined);
+  assert.equal(typeof createdBody.data.token, 'string');
+  assert.ok((createdBody.data.token as string).length > 20);
   assertNoSecrets(createdBody);
+  // Signup must not depend on SMTP / verification email delivery.
+  assert.equal(mailbox.length, 0);
+
+  const meAfterSignup = await fetch(`${baseUrl}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${createdBody.data.token}` },
+  });
+  const meAfterSignupBody = (await meAfterSignup.json()) as AuthBody;
+  assert.equal(meAfterSignup.status, 200);
+  assert.equal(meAfterSignupBody.data.user?.email, `priya.${suffix}@example.com`);
+  assert.equal(meAfterSignupBody.data.user?.role, 'SALES');
+  assertNoSecrets(meAfterSignupBody);
 
   const duplicate = await fetch(`${baseUrl}/api/auth/signup`, {
     method: 'POST',
@@ -176,14 +188,26 @@ test('signup, verification, password reset, and Google identity follow productio
   assert.equal(duplicate.status, 409);
   assert.equal(duplicateBody.error.code, 'DUPLICATE_EMAIL');
 
-  const unverifiedLogin = await fetch(`${baseUrl}/api/auth/login`, {
+  // Password login works immediately; email verification is optional.
+  const loginOk = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: `priya.${suffix}@example.com`, password: STRONG_PASSWORD }),
   });
-  const unverifiedBody = (await unverifiedLogin.json()) as ErrorBody;
-  assert.equal(unverifiedLogin.status, 403);
-  assert.equal(unverifiedBody.error.code, 'EMAIL_NOT_VERIFIED');
+  const loginOkBody = (await loginOk.json()) as AuthBody;
+  assert.equal(loginOk.status, 200);
+  assert.equal(typeof loginOkBody.data.token, 'string');
+  const previousSession = loginOkBody.data.token as string;
+
+  // Optional verify-email endpoints remain available when SMTP is configured (test mailbox).
+  const resend = await fetch(`${baseUrl}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: `priya.${suffix}@example.com` }),
+  });
+  const resendBody = (await resend.json()) as { success: boolean; message: string };
+  assert.equal(resend.status, 200);
+  assert.match(resendBody.message.toLowerCase(), /if an unverified account exists/);
 
   const verifyToken = tokenFromEmail(mailbox, '/verify-email');
   const invalidVerify = await fetch(`${baseUrl}/api/auth/verify-email`, {
@@ -227,23 +251,14 @@ test('signup, verification, password reset, and Google identity follow productio
   });
   assert.equal(reusedVerify.status, 400);
 
-  const resend = await fetch(`${baseUrl}/api/auth/resend-verification`, {
+  const resendUnknown = await fetch(`${baseUrl}/api/auth/resend-verification`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: `missing.${suffix}@example.com` }),
   });
-  const resendBody = (await resend.json()) as { success: boolean; message: string };
-  assert.equal(resend.status, 200);
-  assert.match(resendBody.message.toLowerCase(), /if an unverified account exists/);
-
-  const loginOk = await fetch(`${baseUrl}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: `priya.${suffix}@example.com`, password: STRONG_PASSWORD }),
-  });
-  const loginOkBody = (await loginOk.json()) as AuthBody;
-  assert.equal(loginOk.status, 200);
-  const previousSession = loginOkBody.data.token as string;
+  const resendUnknownBody = (await resendUnknown.json()) as { success: boolean; message: string };
+  assert.equal(resendUnknown.status, 200);
+  assert.match(resendUnknownBody.message.toLowerCase(), /if an unverified account exists/);
 
   const forgotUnknown = await fetch(`${baseUrl}/api/auth/forgot-password`, {
     method: 'POST',
@@ -363,4 +378,42 @@ test('signup, verification, password reset, and Google identity follow productio
   assert.equal(newGoogleBody.data.user?.email, `google.${suffix}@example.com`);
   assert.equal(newGoogleBody.data.user?.role, 'SALES');
   assertNoSecrets(newGoogleBody);
+});
+
+test('signup succeeds without SMTP and does not send verification email', async (t) => {
+  // Ensure no test mailer and no accidental delivery dependency for signup.
+  setEmailSenderForTests(undefined);
+
+  const server = createServer(app);
+  const baseUrl = await listen(server);
+  const suffix = `nosmtp-${Date.now()}`;
+  const email = `nosmtp.${suffix}@example.com`;
+
+  t.after(async () => {
+    await prisma.user.deleteMany({ where: { email } });
+    await closeServer(server);
+  });
+
+  const created = await fetch(`${baseUrl}/api/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'No Smtp User',
+      email,
+      password: STRONG_PASSWORD,
+      confirmPassword: STRONG_PASSWORD,
+    }),
+  });
+  const createdBody = (await created.json()) as AuthBody;
+  assert.equal(created.status, 201, JSON.stringify(createdBody));
+  assert.equal(createdBody.data.user?.role, 'SALES');
+  assert.equal(typeof createdBody.data.token, 'string');
+  assertNoSecrets(createdBody);
+
+  const login = await fetch(`${baseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: STRONG_PASSWORD }),
+  });
+  assert.equal(login.status, 200);
 });
