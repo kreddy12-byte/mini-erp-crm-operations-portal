@@ -199,7 +199,9 @@ export function ProductsPage() {
           description={
             hasFilters
               ? 'Nothing matches the current search or filters.'
-              : 'Add a product to start the catalog and inventory records.'
+              : canManage
+                ? 'Add a product to start the catalog and inventory records.'
+                : 'The catalog is empty. Warehouse or admin staff can add products.'
           }
           action={
             hasFilters ? (
